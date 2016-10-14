@@ -81,6 +81,13 @@ abstract class UsernamePasswordLoginModule extends AbstractLoginModule
     private $hashEncoding = null;
 
     /**
+     * The salt to use
+     *
+     * @var string
+     */
+    private $hashSalt = null;
+
+    /**
      * A flag indicating if the password comparison should ignore case
      *
      * @var boolean
@@ -125,6 +132,9 @@ abstract class UsernamePasswordLoginModule extends AbstractLoginModule
             // initialize the hash charset if specified
             if ($params->exists(ParamKeys::HASH_CHARSET)) {
                 $this->hashCharset = new String($params->get(ParamKeys::HASH_CHARSET));
+            }
+            if ($params->exists(ParamKeys::HASH_SALT)) {
+                $this->hashSalt = new String($params->get(ParamKeys::HASH_SALT));
             }
         }
 
@@ -210,6 +220,8 @@ abstract class UsernamePasswordLoginModule extends AbstractLoginModule
             // validate the password
             if ($this->validatePassword($password, $expectedPassword) === false) {
                 // super.log.debug("Bad password for username="+username);
+                var_dump($password);
+                var_dump($expectedPassword);
                 throw new FailedLoginException('Password Incorrect/Password Required');
             }
         }
@@ -277,7 +289,7 @@ abstract class UsernamePasswordLoginModule extends AbstractLoginModule
         }
 
         // hash and return the password
-        return Util::createPasswordHash($this->hashAlgorithm, $this->hashEncoding, $this->hashCharset, $name, $password, $callback);
+        return Util::createPasswordHash($this->hashAlgorithm, $this->hashEncoding, $this->hashCharset, $name, $password, $callback, $this->hashSalt);
     }
 
     /**

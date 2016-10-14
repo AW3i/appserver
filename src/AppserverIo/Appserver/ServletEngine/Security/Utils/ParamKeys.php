@@ -82,6 +82,13 @@ class ParamKeys
     const HASH_CHARSET = 'hashCharset';
 
     /**
+     * the key for the "salt" parameter.
+     *
+     * @var string
+     */
+    const HASH_SALT = 'hashSalt';
+
+    /**
      * The key for the "ignorePasswordCase" parameter.
      *
      * @var string

@@ -66,13 +66,29 @@ class Util
      * @param \AppserverIo\Lang\String $name          The login name
      * @param \AppserverIo\Lang\String $password      The password credential
      * @param mixed                    $callback      The callback providing some additional hashing functionality
+     * @param string                   $hashSalt      The hash salt to use
      *
      * @return \AppserverIo\Lang\String The hashed password
      */
-    public static function createPasswordHash($hashAlgorithm, $hashEncoding, $hashCharset, String $name, String $password, $callback)
+    public static function createPasswordHash($hashAlgorithm, $hashEncoding, $hashCharset, String $name, String $password, $callback, $hashSalt)
     {
         $newPassword = clone $password;
-        return $newPassword->md5();
+        switch ($hashAlgorithm) {
+            case HashKeys::MD5:
+                return $newPassword->md5($hashSalt);
+            case HashKeys::SHA1:
+                return $newPassword->sha1($hashSalt);
+            case HashKeys::SHA256:
+                return $newPassword->sha256($hashSalt);
+            case HashKeys::SHA512:
+                return $newPassword->sha512($hashSalt);
+            case 'PASSWORD_BCRYPT':
+                $newPassword = password_hash($password, PASSWORD_BCRYPT);
+                return $newPassword;
+            case 'default':
+                $newPassword = password_hash($password, PASSWORD_DEFAULT);
+                return $newPassword;
+        }
     }
 
     /**
