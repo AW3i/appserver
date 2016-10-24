@@ -137,6 +137,14 @@ class PersistenceUnitNode extends AbstractNode implements PersistenceUnitNodeInt
     protected $metadataCacheConfiguration;
 
     /**
+     * The node containing the doctrine event manager configuration information.
+     *
+     * @var \AppserverIo\Appserver\Core\Api\Node\EventManagerConfigurationNode
+     * @AS\Mapping(nodeName="eventManagerConfiguration", nodeType="AppserverIo\Appserver\Core\Api\Node\EventManagerConfigurationNode")
+     */
+    protected $eventManagerConfiguration;
+
+    /**
      * Initialize the node with the default cache configuration.
      */
     public function __construct()
@@ -144,6 +152,7 @@ class PersistenceUnitNode extends AbstractNode implements PersistenceUnitNodeInt
         $this->queryCacheConfiguration = new QueryCacheConfigurationNode();
         $this->resultCacheConfiguration = new ResultCacheConfigurationNode();
         $this->metadataCacheConfiguration = new MetadataCacheConfigurationNode();
+        $this->eventManagerConfiguration = new EventManagerConfigurationNode();
     }
 
     /**
@@ -234,5 +243,15 @@ class PersistenceUnitNode extends AbstractNode implements PersistenceUnitNodeInt
     public function getMetadataCacheConfiguration()
     {
         return $this->metadataCacheConfiguration;
+    }
+
+    /**
+     * Returns the event manager configuration.
+     *
+     * @return AppserverIo\Appserver\Core\Api\Node\EventManagerConfigurationNode The entity manager's metadata cache configuration
+     */
+    public function getEventManagerConfiguration()
+    {
+        return $this->eventManagerConfiguration;
     }
 }
