@@ -170,8 +170,10 @@ class EntityManagerFactory
         list ($connectionParameters, $configuration) = $application->getAttribute($persistenceUnitNode->getName());
 
         // initialize and return a entity manager decorator instance
+        $eventManager = new \Doctrine\Common\EventManager();
+        var_dump($application->getAttribute($persistenceUnitNode->getName()));
         return new DoctrineEntityManagerDecorator(
-            EntityManager::create($connectionParameters, $configuration)
+            EntityManager::create($connectionParameters, $configuration, $eventManager)
         );
     }
 
