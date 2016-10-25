@@ -110,6 +110,8 @@ class EntityManagerFactory
                 EntityManagerFactory::getCacheImpl($persistenceUnitNode, $resultCacheConfiguration)
             );
 
+            $eventManagerConfiguration = $persistenceUnitNode->getEventManagerConfiguration();
+
             // proxy configuration
             $configuration->setProxyDir($proxyDir = $proxyDir ?: sys_get_temp_dir());
             $configuration->setProxyNamespace($proxyNamespace = $proxyNamespace ?: 'Doctrine\Proxy');
@@ -171,7 +173,6 @@ class EntityManagerFactory
 
         // initialize and return a entity manager decorator instance
         $eventManager = new \Doctrine\Common\EventManager();
-        var_dump($application->getAttribute($persistenceUnitNode->getName()));
         return new DoctrineEntityManagerDecorator(
             EntityManager::create($connectionParameters, $configuration, $eventManager)
         );

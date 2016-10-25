@@ -152,7 +152,6 @@ class PersistenceUnitNode extends AbstractNode implements PersistenceUnitNodeInt
         $this->queryCacheConfiguration = new QueryCacheConfigurationNode();
         $this->resultCacheConfiguration = new ResultCacheConfigurationNode();
         $this->metadataCacheConfiguration = new MetadataCacheConfigurationNode();
-        $this->eventManagerConfiguration = new EventManagerConfigurationNode();
     }
 
     /**
