@@ -2088,6 +2088,7 @@
                 <xs:element ref="appserver:queryCacheConfiguration" minOccurs="0"/>
                 <xs:element ref="appserver:annotationRegistries" minOccurs="0"/>
                 <xs:element ref="appserver:ignoredAnnotations" minOccurs="0"/>
+                <xs:element ref="appserver:eventManagerConfiguration" minOccurs="0"/>
             </xs:all>
             <xs:attribute name="name" type="xs:string" use="required"/>
             <xs:attribute name="interface" type="xs:string" use="required"/>
@@ -2156,6 +2157,17 @@
             <xs:attribute name="type" type="xs:string" use="optional"/>
             <xs:attribute name="file" type="xs:string" use="optional"/>
             <xs:attribute name="namespace" type="xs:string" use="optional"/>
+            <xs:attribute name="uuid" type="xs:string"/>
+            <xs:attribute ref="xml:base"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="eventManagerConfiguration">
+        <xs:complexType>
+            <xs:all>
+                <xs:element ref="appserver:doctrineListeners" minOccurs="0"/>
+            </xs:all>
+            <xs:attribute name="type" type="xs:string" use="optional"/>
+            <xs:attribute name="factory" type="xs:string" use="optional"/>
             <xs:attribute name="uuid" type="xs:string"/>
             <xs:attribute ref="xml:base"/>
         </xs:complexType>
@@ -2241,5 +2253,30 @@
                 </xs:extension>
             </xs:simpleContent>
         </xs:complexType>
+    </xs:element>
+    <xs:element name="doctrineListener">
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base="xs:string">
+                    <xs:attribute name="name" type="xs:string" use="required"/>
+                    <xs:attribute name="type" type="xs:string" use="required"/>
+                    <xs:attribute name="constant" type="xs:boolean"/>
+                    <xs:attribute name="env" type="xs:boolean"/>
+                    <xs:attribute name="uuid" type="xs:string"/>
+                    <xs:attribute ref="xml:base"/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="doctrineListeners">
+        <xs:complexType>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element ref="appserver:doctrineListener"/>
+            </xs:choice>
+        </xs:complexType>
+        <xs:unique name="uniqueDoctrineListenerName">
+            <xs:selector xpath="appserver:doctrineListener" />
+            <xs:field xpath="@name" />
+        </xs:unique>
     </xs:element>
 </xs:schema>
