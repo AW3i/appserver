@@ -35,53 +35,11 @@ class EventManagerConfigurationNode extends AbstractNode
 {
 
     /**
-     * Constant for the parameter 'isDevMode'.
+     * A doctrine listeners knode trait.
      *
-     * @var string
+     * @var \AppserverIo\Appserver\Core\Api\Node\DoctrineListenersNodeTrait
      */
-    const PARAM_IS_DEV_MODE = 'isDevMode';
-
-    /**
-     * Constant for the parameter 'proxyDir'.
-     *
-     * @var string
-     */
-    const PARAM_PROXY_DIR = 'proxyDir';
-
-    /**
-     * Constant for the parameter 'proxyNamespace'.
-     *
-     * @var string
-     */
-    const PARAM_PROXY_NAMESPACE = 'proxyNamespace';
-
-    /**
-     * Constant for the parameter 'useSimpleAnnotationReader'.
-     *
-     * @var string
-     */
-    const PARAM_USE_SIMPLE_ANNOTATION_READER = 'useSimpleAnnotationReader';
-
-    /**
-     * Constant for the parameter 'autoGenerateProxyClasses'.
-     *
-     * @var string
-     */
-    const PARAM_AUTO_GENERATE_PROXY_CLASSES = 'autoGenerateProxyClasses';
-
-    /**
-     * A directories node trait.
-     *
-     * @var \AppserverIo\Appserver\Core\Api\Node\DirectoriesNodeTrait
-     */
-    use DirectoriesNodeTrait;
-
-    /**
-     * A params node trait.
-     *
-     * @var \AppserverIo\Appserver\Core\Api\Node\ParamsNodeTrait
-     */
-    use ParamsNodeTrait;
+    use DoctrineListenersNodeTrait;
 
     /**
      * The class name for the event manager configuration driver.

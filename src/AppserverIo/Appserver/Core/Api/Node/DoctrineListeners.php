@@ -36,7 +36,7 @@ trait DoctrineListenersNodeTrait
      * The listeners.
      *
      * @var array
-     * @AS\Mapping(nodeName="doctrineListeners/doctrineListener", nodeType="array", elementType="AppserverIo\Appserver\Core\Api\Node\DoctrineListenersNode")
+     * @AS\Mapping(nodeName="doctrineListeners/doctrineListener", nodeType="array", elementType="AppserverIo\Appserver\Core\Api\Node\DoctrineListenerNode")
      */
     protected $listeners = array();
 
