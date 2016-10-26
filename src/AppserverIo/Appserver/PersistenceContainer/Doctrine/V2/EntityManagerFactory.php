@@ -64,6 +64,9 @@ class EntityManagerFactory
             $registry->register($annotationRegistry);
         }
 
+        // instantiate doctrine's EventManager
+        $eventManager = new \Doctrine\Common\EventManager();
+
         // query whether or not an initialize EM configuration is available
         if ($application->hasAttribute($persistenceUnitNode->getName()) === false) {
             // globally ignore configured annotations to ignore
@@ -110,7 +113,13 @@ class EntityManagerFactory
                 EntityManagerFactory::getCacheImpl($persistenceUnitNode, $resultCacheConfiguration)
             );
 
+            // initialize the event manager configuration
             $eventManagerConfiguration = $persistenceUnitNode->getEventManagerConfiguration();
+            $listeners = $eventManagerConfiguration->getListenersAsArray();
+            foreach ($listeners as $listener) {
+                $tempListener = new $listener();
+                $eventManager->addEventSubscriber($tempListener);
+            }
 
             // proxy configuration
             $configuration->setProxyDir($proxyDir = $proxyDir ?: sys_get_temp_dir());
@@ -172,7 +181,6 @@ class EntityManagerFactory
         list ($connectionParameters, $configuration) = $application->getAttribute($persistenceUnitNode->getName());
 
         // initialize and return a entity manager decorator instance
-        $eventManager = new \Doctrine\Common\EventManager();
         return new DoctrineEntityManagerDecorator(
             EntityManager::create($connectionParameters, $configuration, $eventManager)
         );
