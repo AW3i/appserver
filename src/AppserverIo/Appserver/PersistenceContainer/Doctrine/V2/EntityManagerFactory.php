@@ -115,11 +115,7 @@ class EntityManagerFactory
 
             // initialize the event manager configuration
             $eventManagerConfiguration = $persistenceUnitNode->getEventManagerConfiguration();
-            $listeners = $eventManagerConfiguration->getListenersAsArray();
-            foreach ($listeners as $listener) {
-                $tempListener = new $listener();
-                $eventManager->addEventSubscriber($tempListener);
-            }
+            DoctrineListenerFactory::build($eventManager, $eventManagerConfiguration->getListenersAsArray());
 
             // proxy configuration
             $configuration->setProxyDir($proxyDir = $proxyDir ?: sys_get_temp_dir());
