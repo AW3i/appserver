@@ -30,11 +30,12 @@ namespace AppserverIo\Appserver\PersistenceContainer\Doctrine\V2;
  */
 class DoctrineListenerFactory
 {
-    public static function build($eventManager, $listeners = array())
+    public static function build($eventManager, $cachedAnnotationReader, $listeners = array())
     {
         foreach ($listeners as $listener) {
             if (class_exists($listener)) {
                 $tempListener = new $listener();
+                $tempListener->setAnnotationReader($cachedAnnotationReader);
                 $eventManager->addEventSubscriber($tempListener);
             } else {
                 throw new Exception("Class $listener not found");

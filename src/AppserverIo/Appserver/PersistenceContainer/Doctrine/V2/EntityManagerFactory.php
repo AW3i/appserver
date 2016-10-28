@@ -55,7 +55,6 @@ class EntityManagerFactory
      */
     public static function factory(ApplicationInterface $application, PersistenceUnitNodeInterface $persistenceUnitNode)
     {
-
         // register additional annotation libraries
         foreach ($persistenceUnitNode->getAnnotationRegistries() as $annotationRegistry) {
             // register the annotations specified by the annotation registery
@@ -64,7 +63,29 @@ class EntityManagerFactory
             $registry->register($annotationRegistry);
         }
 
+        // // Second configure ORM
+        // globally used cache driver, in production use APC or memcached
+        $cache = new \Doctrine\Common\Cache\ArrayCache();
+        // standard annotation reader
+        $annotationReader = new \Doctrine\Common\Annotations\AnnotationReader();
+        $cachedAnnotationReader = new \Doctrine\Common\Annotations\CachedReader(
+            $annotationReader, // use reader
+            $cache // and a cache driver
+        );
+        // create a driver chain for metadata reading
         // instantiate doctrine's EventManager
+        $driverChain = new \Doctrine\Common\Persistence\Mapping\Driver\MappingDriverChain();
+
+        // now we want to register our application entities,
+        // for that we need another metadata driver used for Entity namespace
+        $annotationDriver = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver(
+            $cachedAnnotationReader, // our cached annotation reader
+            array('/opt/appserver/webapps/td-project/common/classes/TechDivision/Project/Entities') // paths to look in
+        );
+        // NOTE: driver for application Entity can be different, Yaml, Xml or whatever
+        // register annotation driver for our application Entity namespace
+        $driverChain->addDriver($annotationDriver, 'Xml');
+
         $eventManager = new \Doctrine\Common\EventManager();
 
         // query whether or not an initialize EM configuration is available
@@ -115,7 +136,7 @@ class EntityManagerFactory
 
             // initialize the event manager configuration
             $eventManagerConfiguration = $persistenceUnitNode->getEventManagerConfiguration();
-            DoctrineListenerFactory::build($eventManager, $eventManagerConfiguration->getListenersAsArray());
+            DoctrineListenerFactory::build($eventManager, $cachedAnnotationReader, $eventManagerConfiguration->getListenersAsArray());
 
             // proxy configuration
             $configuration->setProxyDir($proxyDir = $proxyDir ?: sys_get_temp_dir());
