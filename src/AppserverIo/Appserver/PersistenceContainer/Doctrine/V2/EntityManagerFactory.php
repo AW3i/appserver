@@ -90,42 +90,46 @@ class EntityManagerFactory
             // create the database configuration and initialize the entity manager
             /** @var \Doctrine\DBAL\Configuration $configuration */
             $configuration = new Configuration();
-            $configuration->setMetadataDriverImpl($metadataDriver = $metadataDriverFactory::get($configuration, $absolutePaths, $metadataDriverParams));
+            $metadataDriver = $metadataDriverFactory::get($configuration, $absolutePaths, $metadataDriverParams);
 
-            $annotationReader = $metadataDriver->getReader();
-
+            $cache = new \Doctrine\Common\Cache\ArrayCache();
             // create a driver chain for metadata reading
             $driverChain = new \Doctrine\Common\Persistence\Mapping\Driver\MappingDriverChain();
+
+            $annotationReader = new AnnotationReader;
+            $cachedAnnotationReader = new \Doctrine\Common\Annotations\CachedReader(
+                $annotationReader, // use reader
+                $cache // and a cache driver
+            );
 
             // load superclass metadata mapping only, into driver chain
             // also registers Gedmo annotations.NOTE: you can personalize it
             \Gedmo\DoctrineExtensions::registerAbstractMappingIntoDriverChainORM(
                 $driverChain, // our metadata driver chain, to hook into
-                $annotationReader // our cached annotation reader
+                $cachedAnnotationReader
             );
 
             // NOTE: driver for application Entity can be different, Yaml, Xml or whatever
             // register annotation driver for our application Entity namespace
-            $driverChain->addDriver($metadataDriver, 'Entity');
+            $driverChain->addDriver($metadataDriver, 'TechDivision\Project\Entities');
 
             // Third, create event manager and hook prefered extension listeners
             $evm = new \Doctrine\Common\EventManager();
 
-            // tree
-            $treeListener = new \Gedmo\Tree\TreeListener();
-            $treeListener->setAnnotationReader($annotationReader);
-            $evm->addEventSubscriber($treeListener);
 
+            $configuration->setMetadataDriverImpl($driverChain);
             // initialize the metadata cache configuration
             $metadataCacheConfiguration = $persistenceUnitNode->getMetadataCacheConfiguration();
             $configuration->setMetadataCacheImpl(
-                EntityManagerFactory::getCacheImpl($persistenceUnitNode, $metadataCacheConfiguration)
+                //EntityManagerFactory::getCacheImpl($persistenceUnitNode, $metadataCacheConfiguration)
+                $cache
             );
 
             // initialize the query cache configuration
             $queryCacheConfiguration = $persistenceUnitNode->getQueryCacheConfiguration();
             $configuration->setQueryCacheImpl(
-                EntityManagerFactory::getCacheImpl($persistenceUnitNode, $queryCacheConfiguration)
+                //EntityManagerFactory::getCacheImpl($persistenceUnitNode, $queryCacheConfiguration)
+                $cache
             );
 
             // initialize the result cache configuration
@@ -138,6 +142,11 @@ class EntityManagerFactory
             $configuration->setProxyDir($proxyDir = $proxyDir ?: sys_get_temp_dir());
             $configuration->setProxyNamespace($proxyNamespace = $proxyNamespace ?: 'Doctrine\Proxy');
             $configuration->setAutoGenerateProxyClasses($autoGenerateProxyClasses = $autoGenerateProxyClasses ?: true);
+
+            // tree
+            $treeListener = new \Gedmo\Tree\TreeListener();
+            $treeListener->setAnnotationReader($cachedAnnotationReader);
+            $evm->addEventSubscriber($treeListener);
 
             // load the datasource node
             $datasourceNode = null;
