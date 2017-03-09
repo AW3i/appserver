@@ -124,6 +124,41 @@ class ParamKeys
     const ROLES_PATH_PREFIX = 'rolesPathPrefix';
 
     /**
+     * The key for the "ldapUrl" parameter.
+     *
+     * @var string
+     */
+    const LDAP_URL = 'ldapUrl';
+
+    /**
+     * The key for the "ldapPort" parameter.
+     *
+     * @var string
+     */
+    const LDAP_PORT = 'ldapPort';
+
+    /**
+     * The key for the "ldapBaseDistinguishedName" parameter.
+     *
+     * @var string
+     */
+    const LDAP_BASE_DISTINGUISHED_NAME = 'ldapBaseDistinguishedName';
+
+    /**
+     * The key for the "ldapStartTls" parameter.
+     *
+     * @var string
+     */
+    const LDAP_START_TLS = 'ldapStartTls';
+
+    /**
+     * The key for the "ldapObjectClass" parameter.
+     *
+     * @var string
+     */
+    const LDAP_OBJECT_CLASS = 'ldapObjectClass';
+
+    /**
      * This is a utility class, so protect it against direct instantiation.
      */
     private function __construct()
