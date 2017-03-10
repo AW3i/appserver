@@ -143,9 +143,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         if ($params->exists(ParamKeys::LDAP_OBJECT_CLASS)) {
             $this->ldapObjectClass = $params->get(ParamKeys::LDAP_OBJECT_CLASS);
         }
-        // if ($params->exists(ParamKeys::LDAP_START_TLS)) {
-        //     $this->ldapStartTls = new String($params->get(ParamKeys::LDAP_START_TLS));
-        // }
+        if ($params->exists(ParamKeys::LDAP_START_TLS)) {
+            $this->ldapStartTls = $params->get(ParamKeys::LDAP_START_TLS);
+        }
     }
 
     /**
@@ -196,10 +196,10 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         }
         $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
 
-        if (isset($ldap_connection)) {
-            // if ($this->ldapStartTls == true) {
-            //     ldap_start_tls($ldap_connection);
-            // }
+        if ($ldap_connection) {
+            if ($this->ldapStartTls == 'true') {
+                ldap_start_tls($ldap_connection);
+            }
 
             //anonymous login
             $bind = ldap_bind($ldap_connection);
@@ -208,7 +208,8 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $filter);
 
             $entry = ldap_first_entry($ldap_connection, $search);
-            if (!($dn = ldap_get_dn($ldap_connection, $entry))) {
+            $dn = ldap_get_dn($ldap_connection, $entry);
+            if (!(isset($dn))) {
                 throw new LoginException(sprintf('User not found in ldap directory'));
             }
         } else {
@@ -227,6 +228,8 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->sharedState->add(SharedStateKeys::LOGIN_PASSWORD, $this->credential);
         }
 
+        var_dump($this->identity);
+        var_dump($dn);
         $this->loginOk = true;
         return true;
     }
@@ -249,30 +252,30 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
-        return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
-        // $setsMap = new HashMap();
-        // $name = 'Administrator';
-        // $groupName = Util::DEFAULT_GROUP_NAME;
-        //
-        // // load the application context
-        // $application = RequestHandler::getApplicationContext();
-        // if ($setsMap->exists($groupName) === false) {
-        //     $group = new SimpleGroup(new String($groupName));
-        //     $setsMap->add($groupName, $group);
-        // } else {
-        //     $group = $setsMap->get($groupName);
-        // }
-        // try {
-        //     // add the user to the group
-        //     $group->addMember($this->createIdentity(new String($name)));
-        //     // log a message
-        // } catch (\Exception $e) {
-        //     $application
-        //         ->getNamingDirectory()
-        //         ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
-        //         ->error(sprintf('Failed to create principal: %s', $name));
-        // }
-        // return $setsMap->toArray();
+        // return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
+        $setsMap = new HashMap();
+        $name = 'Administrator';
+        $groupName = Util::DEFAULT_GROUP_NAME;
+
+        // load the application context
+        $application = RequestHandler::getApplicationContext();
+        if ($setsMap->exists($groupName) === false) {
+            $group = new SimpleGroup(new String($groupName));
+            $setsMap->add($groupName, $group);
+        } else {
+            $group = $setsMap->get($groupName);
+        }
+        try {
+            // add the user to the group
+            $group->addMember($this->createIdentity(new String($name)));
+            // log a message
+        } catch (\Exception $e) {
+            $application
+                ->getNamingDirectory()
+                ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+                ->error(sprintf('Failed to create principal: %s', $name));
+        }
+        return $setsMap->toArray();
     }
 
     /**
