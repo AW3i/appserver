@@ -32,6 +32,8 @@ use AppserverIo\Appserver\ServletEngine\Security\SecurityException;
 use AppserverIo\Appserver\ServletEngine\Security\Utils\Util;
 use AppserverIo\Appserver\ServletEngine\Security\Utils\ParamKeys;
 use AppserverIo\Appserver\ServletEngine\Security\Utils\SharedStateKeys;
+use AppserverIo\Appserver\ServletEngine\RequestHandler;
+use AppserverIo\Appserver\ServletEngine\Security\SimpleGroup;
 
 /**
  * This valve will check if the actual request needs authentication.
@@ -165,7 +167,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             try {
                 $this->identity = $this->createIdentity($name);
             } catch (\Exception $e) {
-                // log.debug("Failed to create principal", e);
                 throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
             }
             $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
@@ -215,12 +216,45 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     }
 
     /**
-     * undocumented function
+     * Execute the rolesQuery against the lookupName to obtain the roles for the authenticated user.
      *
-     * @return void
+     * @return array Array containing the sets of roles
+     * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if password can't be loaded
      */
-    public function getRoleSets()
+    protected function getRoleSets()
     {
-        return array();
+        $setsMap = new HashMap();
+        $name = 'fail';
+        $groupName = Util::DEFAULT_GROUP_NAME;
+
+        // load the application context
+        $application = RequestHandler::getApplicationContext();
+        if ($setsMap->exists($groupName) === false) {
+            $group = new SimpleGroup(new String($groupName));
+            $setsMap->add($groupName, $group);
+        } else {
+            $group = $setsMap->get($groupName);
+        }
+        try {
+            // add the user to the group
+            $group->addMember($this->createIdentity(new String($name)));
+            // log a message
+        } catch (\Exception $e) {
+            $application
+                ->getNamingDirectory()
+                ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+                ->error(sprintf('Failed to create principal: %s', $name));
+        }
+        return $setsMap->toArray();
+    }
+
+    /**
+     * return's the authenticated user identity.
+     *
+     * @return \appserverio\psr\security\principalinterface the user identity
+     */
+    protected function getidentity()
+    {
+        return $this->identity;
     }
 }
