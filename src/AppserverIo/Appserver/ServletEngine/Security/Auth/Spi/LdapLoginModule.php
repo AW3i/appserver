@@ -48,6 +48,27 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 {
 
     /**
+     * The datasource name used to lookup in the naming directory.
+     *
+     * @var \AppserverIo\Lang\String
+     */
+    protected $lookupName;
+
+    /**
+     * The database query used to load the user's roles.
+     *
+     * @var \AppserverIo\Lang\String
+     */
+    protected $rolesQuery;
+
+    /**
+     * The database query used to load the user.
+     *
+     * @var \AppserverIo\Lang\String
+     */
+    protected $principalsQuery;
+
+    /**
      * The ldap url of the ldap server
      *
      * @var string
@@ -105,6 +126,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         // call the parent method
         parent::initialize($subject, $callbackHandler, $sharedState, $params);
 
+        $this->lookupName = new String($params->get(ParamKeys::LOOKUP_NAME));
+        $this->rolesQuery = new String($params->get(ParamKeys::ROLES_QUERY));
+        $this->principalsQuery = new String($params->get(ParamKeys::PRINCIPALS_QUERY));
 
         // initialize the hash encoding to use
         if ($params->exists(ParamKeys::LDAP_URL)) {
@@ -114,10 +138,10 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->ldapPort = $params->get(ParamKeys::LDAP_PORT);
         }
         if ($params->exists(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME)) {
-            $this->ldapBaseDistinguishedName = new String($params->get(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME));
+            $this->ldapBaseDistinguishedName = $params->get(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME);
         }
         if ($params->exists(ParamKeys::LDAP_OBJECT_CLASS)) {
-            $this->ldapObjectClass = new String($params->get(ParamKeys::LDAP_OBJECT_CLASS));
+            $this->ldapObjectClass = $params->get(ParamKeys::LDAP_OBJECT_CLASS);
         }
         // if ($params->exists(ParamKeys::LDAP_START_TLS)) {
         //     $this->ldapStartTls = new String($params->get(ParamKeys::LDAP_START_TLS));
@@ -132,26 +156,26 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     public function login()
     {
-        if (AbstractLoginModule::login()) {
-            // Setup our view of the user
-            $name = new String($this->sharedState->get(SharedStateKeys::LOGIN_NAME));
-
-            if ($name instanceof Principal) {
-                $this->identity = name;
-            } else {
-                $name = $name->__toString();
-                try {
-                    $this->identity = $this->createIdentity($name);
-                } catch (\Exception $e) {
-                    // log.debug("Failed to create principal", e);
-                    throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
-                }
-            }
-
-            $password = new String($this->sharedState->get(SharedStateKeys::LOGIN_PASSWORD));
-
-            return true;
-        }
+        // if (AbstractLoginModule::login()) {
+        //     // Setup our view of the user
+        //     $name = new String($this->sharedState->get(SharedStateKeys::LOGIN_NAME));
+        //
+        //     if ($name instanceof Principal) {
+        //         $this->identity = name;
+        //     } else {
+        //         $name = $name->__toString();
+        //         try {
+        //             $this->identity = $this->createIdentity($name);
+        //         } catch (\Exception $e) {
+        //             // log.debug("Failed to create principal", e);
+        //             throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
+        //         }
+        //     }
+        //
+        //     $password = new String($this->sharedState->get(SharedStateKeys::LOGIN_PASSWORD));
+        //
+        //     return true;
+        // }
 
         $this->loginOk = false;
 
@@ -169,29 +193,31 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             } catch (\Exception $e) {
                 throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
             }
-            $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
+        }
+        $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
 
-            if (isset($ldap_connection)) {
-                // if ($this->ldapStartTls == true) {
-                //     ldap_start_tls($ldap_connection);
-                // }
+        if (isset($ldap_connection)) {
+            // if ($this->ldapStartTls == true) {
+            //     ldap_start_tls($ldap_connection);
+            // }
 
-                //anonymous login
-                $bind = ldap_bind($ldap_connection);
+            //anonymous login
+            $bind = ldap_bind($ldap_connection);
 
-                $filter = "(&(objectClass=$this->ldapObjectClass)(uid=$name))";
-                $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $filter);
+            $filter = "(&(objectClass=$this->ldapObjectClass)(uid=$name))";
+            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $filter);
 
-                $entry = ldap_first_entry($ldap_connection, $search);
-                $dn = ldap_get_dn($ldap_connection, $entry);
-            } else {
-                throw new LoginException(sprintf('Couldn\'t connect to ldap server'));
+            $entry = ldap_first_entry($ldap_connection, $search);
+            if (!($dn = ldap_get_dn($ldap_connection, $entry))) {
+                throw new LoginException(sprintf('User not found in ldap directory'));
             }
+        } else {
+            throw new LoginException(sprintf('Couldn\'t connect to ldap server'));
+        }
 
-            $bind = ldap_bind($ldap_connection, $dn, $password);
-            if ($bind == false) {
-                throw new LoginException(sprintf('Username or password wrong'));
-            }
+        $bind = ldap_bind($ldap_connection, $dn, $password);
+        if ($bind == false) {
+            throw new LoginException(sprintf('Username or password wrong'));
         }
 
         // query whether or not password stacking has been activated
@@ -223,29 +249,30 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
-        $setsMap = new HashMap();
-        $name = 'fail';
-        $groupName = Util::DEFAULT_GROUP_NAME;
-
-        // load the application context
-        $application = RequestHandler::getApplicationContext();
-        if ($setsMap->exists($groupName) === false) {
-            $group = new SimpleGroup(new String($groupName));
-            $setsMap->add($groupName, $group);
-        } else {
-            $group = $setsMap->get($groupName);
-        }
-        try {
-            // add the user to the group
-            $group->addMember($this->createIdentity(new String($name)));
-            // log a message
-        } catch (\Exception $e) {
-            $application
-                ->getNamingDirectory()
-                ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
-                ->error(sprintf('Failed to create principal: %s', $name));
-        }
-        return $setsMap->toArray();
+        return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
+        // $setsMap = new HashMap();
+        // $name = 'Administrator';
+        // $groupName = Util::DEFAULT_GROUP_NAME;
+        //
+        // // load the application context
+        // $application = RequestHandler::getApplicationContext();
+        // if ($setsMap->exists($groupName) === false) {
+        //     $group = new SimpleGroup(new String($groupName));
+        //     $setsMap->add($groupName, $group);
+        // } else {
+        //     $group = $setsMap->get($groupName);
+        // }
+        // try {
+        //     // add the user to the group
+        //     $group->addMember($this->createIdentity(new String($name)));
+        //     // log a message
+        // } catch (\Exception $e) {
+        //     $application
+        //         ->getNamingDirectory()
+        //         ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+        //         ->error(sprintf('Failed to create principal: %s', $name));
+        // }
+        // return $setsMap->toArray();
     }
 
     /**
