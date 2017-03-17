@@ -159,6 +159,13 @@ class ParamKeys
     const LDAP_OBJECT_CLASS = 'ldapObjectClass';
 
     /**
+     * The key for the "ldapObjectClass" parameter.
+     *
+     * @var string
+     */
+    const USER_QUERY = 'userQuery';
+
+    /**
      * This is a utility class, so protect it against direct instantiation.
      */
     private function __construct()
