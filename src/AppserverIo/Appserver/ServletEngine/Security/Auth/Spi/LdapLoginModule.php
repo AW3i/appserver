@@ -102,6 +102,13 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      * @var boolean
      */
     protected $ldapStartTls = null;
+
+    /**
+     * The userQuery to find the user
+     *
+     * @var \Appserver\Io\Lang\String
+     */
+    protected $userQuery = null;
     /**
      * Initialize the login module. This stores the subject, callbackHandler and sharedState and options
      * for the login session. Subclasses should override if they need to process their own options. A call
@@ -129,6 +136,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         $this->lookupName = new String($params->get(ParamKeys::LOOKUP_NAME));
         $this->rolesQuery = new String($params->get(ParamKeys::ROLES_QUERY));
         $this->principalsQuery = new String($params->get(ParamKeys::PRINCIPALS_QUERY));
+        $this->userQuery = new String($params->get(ParamKeys::USER_QUERY));
 
         // initialize the hash encoding to use
         if ($params->exists(ParamKeys::LDAP_URL)) {
@@ -228,8 +236,10 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->sharedState->add(SharedStateKeys::LOGIN_PASSWORD, $this->credential);
         }
 
-        var_dump($this->identity);
-        var_dump($dn);
+        // Check if the ldap user exists
+        if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
+        }
+
         $this->loginOk = true;
         return true;
     }

@@ -192,6 +192,73 @@ class Util
     }
 
     /**
+     * Execute the userQuery against the username to obtain the user.
+     *
+     * @param \AppserverIo\Lang\String                  $username   The username to load the roles for
+     * @param \AppserverIo\Lang\String                  $lookupName The lookup name for the datasource
+     * @param \AppserverIo\Lang\String                  $userQuery The query to load the roles
+     *
+     * @return boolean
+     * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
+     */
+    public static function isUserRegistered(String $username, String $lookupName, String $userQuery)
+    {
+        try {
+            // load the application context
+            $application = RequestHandler::getApplicationContext();
+
+            /** @var \AppserverIo\Appserver\Core\Api\Node\DatabaseNode $databaseNode */
+            $databaseNode = $application->getNamingDirectory()->search($lookupName)->getDatabase();
+
+            // prepare the connection parameters and create the DBAL connection
+            $connection = DriverManager::getConnection(ConnectionUtil::get($application)->fromDatabaseNode($databaseNode));
+
+            // try to load the principal's roles from the database
+            $statement = $connection->prepare($userQuery);
+            $statement->bindParam(1, $username);
+            $statement->execute();
+
+            // query whether or not we've a password found or not
+            $row = $statement->fetch(\PDO::FETCH_NUM);
+
+            // query whether or not we've found at least one role
+            if ($row == true) {
+                return true;
+            }
+        } catch (NamingException $ne) {
+            throw new LoginException($ne->__toString());
+        } catch (\PDOException $pdoe) {
+            throw new LoginException($pdoe->__toString());
+        }
+
+        // close the prepared statement
+        if ($statement != null) {
+            try {
+                $statement->closeCursor();
+            } catch (\Exception $e) {
+                $application
+                    ->getNamingDirectory()
+                    ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+                    ->error($e->__toString());
+            }
+        }
+
+        // close the DBAL connection
+        if ($connection != null) {
+            try {
+                $connection->close();
+            } catch (\Exception $e) {
+                $application
+                    ->getNamingDirectory()
+                    ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+                    ->error($e->__toString());
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * This is a utility class, so protect it against direct instantiation.
      */
     private function __construct()
