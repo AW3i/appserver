@@ -166,6 +166,34 @@ class ParamKeys
     const USER_QUERY = 'userQuery';
 
     /**
+     * The key for the "insertUserQuery" parameter.
+     *
+     * @var string
+     */
+    const INSERT_USER_QUERY = 'insertUserQuery';
+
+    /**
+     * The key for the "insertRoleQuery" parameter.
+     *
+     * @var string
+     */
+    const INSERT_ROLE_QUERY = 'insertRoleQuery';
+
+    /**
+     * The key for the "insertPersonQuery" parameter.
+     *
+     * @var string
+     */
+    const INSERT_PERSON_QUERY = 'insertPersonQuery';
+
+    /**
+     * The key for the "defaultRoleQuery" parameter.
+     *
+     * @var string
+     */
+    const DEFAULT_ROLE_QUERY = 'defaultRoleQuery';
+
+    /**
      * This is a utility class, so protect it against direct instantiation.
      */
     private function __construct()
