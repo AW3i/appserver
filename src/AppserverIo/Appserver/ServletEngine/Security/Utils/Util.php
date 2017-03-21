@@ -194,9 +194,9 @@ class Util
     /**
      * Execute the userQuery against the username to obtain the user.
      *
-     * @param \AppserverIo\Lang\String                  $username   The username to load the roles for
-     * @param \AppserverIo\Lang\String                  $lookupName The lookup name for the datasource
-     * @param \AppserverIo\Lang\String                  $userQuery The query to load the roles
+     * @param \AppserverIo\Lang\String $username   The username to load the roles for
+     * @param \AppserverIo\Lang\String $lookupName The lookup name for the datasource
+     * @param \AppserverIo\Lang\String $userQuery  The query to load the roles
      *
      * @return boolean
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
@@ -261,15 +261,17 @@ class Util
     /**
      * Execute the rolesQuery against the dsJndiName to obtain the roles for the authenticated user.
      *
-     * @param \AppserverIo\Lang\String                  $username   The username to load the roles for
-     * @param \AppserverIo\Lang\String                  $lookupName The lookup name for the datasource
-     * @param \AppserverIo\Lang\String                  $rolesQuery The query to load the roles
-     * @param \AppserverIo\Psr\Spi\LoginModuleInterface $aslm       The login module to add the roles to
+     * @param \AppserverIo\Lang\String $username          The username to load the roles for
+     * @param \AppserverIo\Lang\String $lookupName        The lookup name for the datasource
+     * @param string                   $insertUserQuery   The sql statement to insert the user
+     * @param string                   $insertRoleQuery   The sql statement to insert the role
+     * @param string                   $defaultRoleId     The default role id
+     * @param string                   $insertPersonQuery The sql statement to insert the person
      *
      * @return array An array of groups containing the sets of roles
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
      */
-    public static function insertUser(String $username, String $lookupName, String $insertUserQuery, String $insertRoleQuery, String $insertPersonQuery, String $defaultRole)
+    public static function insertUser(String $username, String $lookupName, $insertUserQuery, $insertRoleQuery, $defaultRoleId, $insertPersonQuery = null)
     {
 
         try {
@@ -289,18 +291,18 @@ class Util
                 $statement->execute();
                 $personId = $connection->lastInsertId();
             }
-            $statement1 = $connection->prepare($insertUserQuery);
-            $statement1->bindParam(1, $username);
+            $statement = $connection->prepare($insertUserQuery);
+            $statement->bindParam(1, $username);
             if (isset($personId)) {
-                $statement1->bindParam(2, $personId);
+                $statement->bindParam(2, $personId);
             }
-            $statement1->execute();
+            $statement->execute();
             $userId = $connection->lastInsertId();
 
-            $statement2 = $connection->prepare($insertRoleQuery);
-            $statement2->bindParam(1, $userId);
-            $statement2->bindParam(2, $defaultRole);
-            $statement2->execute();
+            $statement = $connection->prepare($insertRoleQuery);
+            $statement->bindParam(1, $userId);
+            $statement->bindParam(2, $defaultRoleId);
+            $statement->execute();
 
             // query whether or not we've a password found or not
             // $row = $statement->fetch(\PDO::FETCH_NUM);
@@ -338,10 +340,8 @@ class Util
     /**
      * Execute the rolesQuery against the dsJndiName to obtain the roles for the authenticated user.
      *
-     * @param \AppserverIo\Lang\String                  $username   The username to load the roles for
-     * @param \AppserverIo\Lang\String                  $lookupName The lookup name for the datasource
-     * @param \AppserverIo\Lang\String                  $rolesQuery The query to load the roles
-     * @param \AppserverIo\Psr\Spi\LoginModuleInterface $aslm       The login module to add the roles to
+     * @param \AppserverIo\Lang\String $lookupName       The lookup name for the datasource
+     * @param string                   $defaultRoleQuery The sql statement to find the default role
      *
      * @return array An array of groups containing the sets of roles
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
@@ -359,16 +359,11 @@ class Util
             // prepare the connection parameters and create the DBAL connection
             $connection = DriverManager::getConnection(ConnectionUtil::get($application)->fromDatabaseNode($databaseNode));
 
-            // try to load the principal's roles from the database
             $statement = $connection->prepare($defaultRoleQuery);
-            // $statement->bindParam(1, $username);
             $statement->execute();
-
-            // query whether or not we've a password found or not
             $row = $statement->fetch(\PDO::FETCH_NUM);
 
-            $name = $row[0];
-            // } while ($row = $statement->fetch(\PDO::FETCH_OBJ));
+            $defaultRole = $row[0];
         } catch (NamingException $ne) {
             throw new LoginException($ne->__toString());
         } catch (\PDOException $pdoe) {
@@ -400,7 +395,7 @@ class Util
         }
 
         // return the prepared groups
-        return $name;
+        return $defaultRole;
     }
 
 
