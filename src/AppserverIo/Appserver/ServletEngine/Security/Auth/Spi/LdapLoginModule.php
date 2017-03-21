@@ -109,6 +109,34 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      * @var \Appserver\Io\Lang\String
      */
     protected $userQuery = null;
+
+    /**
+     * The insertUserQuery to insert the new ldap user
+     *
+     * @var \Appserver\Io\Lang\String
+     */
+    protected $insertUserQuery = null;
+
+    /**
+     * The insertRoleQuery to insert the new ldap role
+     *
+     * @var \Appserver\Io\Lang\String
+     */
+    protected $insertRoleQuery = null;
+
+    /**
+     * The insertPersonQuery to insert the new ldap person
+     *
+     * @var \Appserver\Io\Lang\String
+     */
+    protected $insertPersonQuery = null;
+
+    /**
+     * The default role to find
+     *
+     * @var \Appserver\Io\Lang\String
+     */
+    protected $defaultRoleQuery = null;
     /**
      * Initialize the login module. This stores the subject, callbackHandler and sharedState and options
      * for the login session. Subclasses should override if they need to process their own options. A call
@@ -153,6 +181,18 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         }
         if ($params->exists(ParamKeys::LDAP_START_TLS)) {
             $this->ldapStartTls = $params->get(ParamKeys::LDAP_START_TLS);
+        }
+        if ($params->exists(ParamKeys::INSERT_USER_QUERY)) {
+            $this->insertUserQuery = $params->get(ParamKeys::INSERT_USER_QUERY);
+        }
+        if ($params->exists(ParamKeys::INSERT_ROLE_QUERY)) {
+            $this->insertRoleQuery = $params->get(ParamKeys::INSERT_ROLE_QUERY);
+        }
+        if ($params->exists(ParamKeys::INSERT_PERSON_QUERY)) {
+            $this->insertPersonQuery = $params->get(ParamKeys::INSERT_PERSON_QUERY);
+        }
+        if ($params->exists(ParamKeys::DEFAULT_ROLE_QUERY)) {
+            $this->defaultRoleQuery = $params->get(ParamKeys::DEFAULT_ROLE_QUERY);
         }
     }
 
@@ -238,6 +278,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         // Check if the ldap user exists
         if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
+            var_dump('mpainoume');
+            $defaultRole = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
+            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertPersonQuery, $this->insertPersonQuery, $defaultRole);
         }
 
         $this->loginOk = true;
@@ -262,30 +305,30 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
-        // return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
-        $setsMap = new HashMap();
-        $name = 'Administrator';
-        $groupName = Util::DEFAULT_GROUP_NAME;
-
-        // load the application context
-        $application = RequestHandler::getApplicationContext();
-        if ($setsMap->exists($groupName) === false) {
-            $group = new SimpleGroup(new String($groupName));
-            $setsMap->add($groupName, $group);
-        } else {
-            $group = $setsMap->get($groupName);
-        }
-        try {
-            // add the user to the group
-            $group->addMember($this->createIdentity(new String($name)));
-            // log a message
-        } catch (\Exception $e) {
-            $application
-                ->getNamingDirectory()
-                ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
-                ->error(sprintf('Failed to create principal: %s', $name));
-        }
-        return $setsMap->toArray();
+        return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
+        // $setsMap = new HashMap();
+        // $name = 'Administrator';
+        // $groupName = Util::DEFAULT_GROUP_NAME;
+        //
+        // // load the application context
+        // $application = RequestHandler::getApplicationContext();
+        // if ($setsMap->exists($groupName) === false) {
+        //     $group = new SimpleGroup(new String($groupName));
+        //     $setsMap->add($groupName, $group);
+        // } else {
+        //     $group = $setsMap->get($groupName);
+        // }
+        // try {
+        //     // add the user to the group
+        //     $group->addMember($this->createIdentity(new String($name)));
+        //     // log a message
+        // } catch (\Exception $e) {
+        //     $application
+        //         ->getNamingDirectory()
+        //         ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
+        //         ->error(sprintf('Failed to create principal: %s', $name));
+        // }
+        // return $setsMap->toArray();
     }
 
     /**
