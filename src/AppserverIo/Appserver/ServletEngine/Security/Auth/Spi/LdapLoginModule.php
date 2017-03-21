@@ -278,9 +278,8 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         // Check if the ldap user exists
         if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
-            var_dump('mpainoume');
-            $defaultRole = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
-            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertPersonQuery, $this->insertPersonQuery, $defaultRole);
+            $defaultRoleId = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
+            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertRoleQuery, $this->insertPersonQuery, $defaultRoleId);
         }
 
         $this->loginOk = true;
@@ -306,29 +305,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     protected function getRoleSets()
     {
         return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
-        // $setsMap = new HashMap();
-        // $name = 'Administrator';
-        // $groupName = Util::DEFAULT_GROUP_NAME;
-        //
-        // // load the application context
-        // $application = RequestHandler::getApplicationContext();
-        // if ($setsMap->exists($groupName) === false) {
-        //     $group = new SimpleGroup(new String($groupName));
-        //     $setsMap->add($groupName, $group);
-        // } else {
-        //     $group = $setsMap->get($groupName);
-        // }
-        // try {
-        //     // add the user to the group
-        //     $group->addMember($this->createIdentity(new String($name)));
-        //     // log a message
-        // } catch (\Exception $e) {
-        //     $application
-        //         ->getNamingDirectory()
-        //         ->search(NamingDirectoryKeys::SYSTEM_LOGGER)
-        //         ->error(sprintf('Failed to create principal: %s', $name));
-        // }
-        // return $setsMap->toArray();
     }
 
     /**
