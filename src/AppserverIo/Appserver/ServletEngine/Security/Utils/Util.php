@@ -271,7 +271,7 @@ class Util
      * @return array An array of groups containing the sets of roles
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
      */
-    public static function insertUser(String $username, String $lookupName, $insertUserQuery, $insertRoleQuery, $defaultRoleId, $insertPersonQuery = null)
+    public static function insertUser(String $username, String $lookupName, $insertUserQuery, $insertRoleQuery, $defaultRoleId, $insertPersonQuery = null, $email = null, $firstname = null, $lastname = null)
     {
 
         try {
@@ -287,14 +287,18 @@ class Util
             // try to load the principal's roles from the database
             if (isset($insertPersonQuery)) {
                 $statement = $connection->prepare($insertPersonQuery);
-                $statement->bindParam(1, $username);
+                $statement->bindParam(1, $lastname);
+                if (isset($firstname)) {
+                    $statement->bindParam(2, $firstname);
+                }
                 $statement->execute();
                 $personId = $connection->lastInsertId();
             }
             $statement = $connection->prepare($insertUserQuery);
-            $statement->bindParam(1, $username);
+            $statement->bindParam(1, $email);
+            $statement->bindParam(2, $username);
             if (isset($personId)) {
-                $statement->bindParam(2, $personId);
+                $statement->bindParam(3, $personId);
             }
             $statement->execute();
             $userId = $connection->lastInsertId();

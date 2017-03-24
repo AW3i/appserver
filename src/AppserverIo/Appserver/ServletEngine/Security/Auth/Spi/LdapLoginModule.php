@@ -257,9 +257,14 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
             $entry = ldap_first_entry($ldap_connection, $search);
             $dn = ldap_get_dn($ldap_connection, $entry);
+
             if (!(isset($dn))) {
                 throw new LoginException(sprintf('User not found in ldap directory'));
             }
+            $ldapUserAttributes = ldap_get_attributes($ldap_connection, $entry);
+            $email = $ldapUserAttributes['mail'][0];
+            $firstname = $ldapUserAttributes['givenName'][0];
+            $lastname = $ldapUserAttributes['sn'][0];
         } else {
             throw new LoginException(sprintf('Couldn\'t connect to ldap server'));
         }
@@ -279,7 +284,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         // Check if the ldap user exists
         if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
             $defaultRoleId = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
-            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertRoleQuery, $this->insertPersonQuery, $defaultRoleId);
+            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertRoleQuery, $defaultRoleId, $this->insertPersonQuery, $email, $firstname, $lastname);
         }
 
         $this->loginOk = true;
