@@ -197,34 +197,14 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     }
 
     /**
-     * Perform the authentication of username and password.
+     * Perform the authentication of username and password through ldap.
+     * Following that if the ldap user is not registered the function will try to insert the user in the database.
      *
      * @return boolean TRUE when login has been successfull, else FALSE
      * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if an error during login occured
      */
     public function login()
     {
-        // if (AbstractLoginModule::login()) {
-        //     // Setup our view of the user
-        //     $name = new String($this->sharedState->get(SharedStateKeys::LOGIN_NAME));
-        //
-        //     if ($name instanceof Principal) {
-        //         $this->identity = name;
-        //     } else {
-        //         $name = $name->__toString();
-        //         try {
-        //             $this->identity = $this->createIdentity($name);
-        //         } catch (\Exception $e) {
-        //             // log.debug("Failed to create principal", e);
-        //             throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
-        //         }
-        //     }
-        //
-        //     $password = new String($this->sharedState->get(SharedStateKeys::LOGIN_PASSWORD));
-        //
-        //     return true;
-        // }
-
         $this->loginOk = false;
 
         // array containing the username and password from the user's input
@@ -232,7 +212,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         if ($name == null && $password == null) {
             $this->identity = $this->unauthenticatedIdentity;
-            // super.log.trace("Authenticating as unauthenticatedIdentity="+identity);
         }
 
         if ($this->identity == null) {
@@ -261,7 +240,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             if (!(isset($dn))) {
                 throw new LoginException(sprintf('User not found in ldap directory'));
             }
+            //get the ldap object for the current user
             $ldapUserAttributes = ldap_get_attributes($ldap_connection, $entry);
+
             $email = $ldapUserAttributes['mail'][0];
             $firstname = $ldapUserAttributes['givenName'][0];
             $lastname = $ldapUserAttributes['sn'][0];
@@ -283,7 +264,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         // Check if the ldap user exists
         if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
+            //get the default role id
             $defaultRoleId = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
+            //Insert the ldap user to the local database
             Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertRoleQuery, $defaultRoleId, $this->insertPersonQuery, $email, $firstname, $lastname);
         }
 
@@ -292,7 +275,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     }
 
     /**
-     * undocumented function
+     * Returns the password for the user from the sharedMap data.
      *
      * @return void
      */
