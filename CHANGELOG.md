@@ -1,3 +1,87 @@
+# Version 1.1.4-beta7
+
+## Bugfixes
+
+* Explictly define react/dns version 0.4.4 to avoid Cannot redeclare React\Promise\Timer\timeout()
+* Explictly define react/socket version 0.4.*
+
+## Features
+
+* None
+
+# Version 1.1.4-beta6
+
+## Bugfixes
+
+* Fixed issue in CronScanner that prevents running multiple jobs within the same schedule
+
+## Features
+
+* Switched to new security/authentication libraries
+
+# Version 1.1.4-beta5
+
+## Bugfixes
+
+* Fixed invalid references to old DI interfaces/exceptions
+
+## Features
+
+* None
+
+# Version 1.1.4-beta4
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Switch to latest appserver-io-psr/servlet version 3.0.0
+* Switch to new appserver-io-psr/di version 2.0.0
+
+# Version 1.1.4-beta3
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Switch to latest appserver-io-psr/servlet version 2.0.0
+
+# Version 1.1.4-beta2
+
+## Bugfixes
+
+* Remove invalid class loader re-registration from TimerServiceRegistry::initialize() method
+
+## Features
+
+* Invoke @PreAttach + @PostDetach lifecycle callbacks on SSB
+* Add Doctrine Psr4AnnotationRegistry implementation with support for PSR-4 class loading
+
+# Version 1.1.4-beta1
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Append system properties webapp and webapp.name when parsing datasource XML files
+
+# Version 1.1.3
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add serverVersion and platform parameters to Doctrine configuration
+* Do override loggers defined in etc/appserver/conf.d/context.xml with loggers defined in META-INF/context.xml
+
 # Version 1.1.3-beta3
 
 ## Bugfixes
