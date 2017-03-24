@@ -259,7 +259,8 @@ class Util
     }
 
     /**
-     * Execute the rolesQuery against the dsJndiName to obtain the roles for the authenticated user.
+     * Execute the insertUserQuery and the insertRoleQuery to add the user to the local database for
+     * the Access Control List. Optionally also execute the insertPersonQuery.
      *
      * @param \AppserverIo\Lang\String $username          The username to load the roles for
      * @param \AppserverIo\Lang\String $lookupName        The lookup name for the datasource
@@ -267,8 +268,11 @@ class Util
      * @param string                   $insertRoleQuery   The sql statement to insert the role
      * @param string                   $defaultRoleId     The default role id
      * @param string                   $insertPersonQuery The sql statement to insert the person
+     * @param string                   $email             The email of the user
+     * @param string                   $firstname         The firstname of the user
+     * @param string                   $lastname          The lastname of the user
      *
-     * @return array An array of groups containing the sets of roles
+     * @return void
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
      */
     public static function insertUser(String $username, String $lookupName, $insertUserQuery, $insertRoleQuery, $defaultRoleId, $insertPersonQuery = null, $email = null, $firstname = null, $lastname = null)
@@ -287,29 +291,27 @@ class Util
             // try to load the principal's roles from the database
             if (isset($insertPersonQuery)) {
                 $statement = $connection->prepare($insertPersonQuery);
-                $statement->bindParam(1, $lastname);
+                $statement->bindParam(':lastname', $lastname);
                 if (isset($firstname)) {
-                    $statement->bindParam(2, $firstname);
+                    $statement->bindParam(':firstname', $firstname);
                 }
                 $statement->execute();
                 $personId = $connection->lastInsertId();
             }
             $statement = $connection->prepare($insertUserQuery);
-            $statement->bindParam(1, $email);
-            $statement->bindParam(2, $username);
+            $statement->bindParam(':email', $email);
+            $statement->bindParam(':username', $username);
             if (isset($personId)) {
-                $statement->bindParam(3, $personId);
+                $statement->bindParam(':person', $personId);
             }
             $statement->execute();
             $userId = $connection->lastInsertId();
 
             $statement = $connection->prepare($insertRoleQuery);
-            $statement->bindParam(1, $userId);
-            $statement->bindParam(2, $defaultRoleId);
+            $statement->bindParam(':user', $userId);
+            $statement->bindParam(':role', $defaultRoleId);
             $statement->execute();
 
-            // query whether or not we've a password found or not
-            // $row = $statement->fetch(\PDO::FETCH_NUM);
         } catch (NamingException $ne) {
             throw new LoginException($ne->__toString());
         } catch (\PDOException $pdoe) {
@@ -342,12 +344,12 @@ class Util
     }
 
     /**
-     * Execute the rolesQuery against the dsJndiName to obtain the roles for the authenticated user.
+     * Execute the defaultRoleQuery to get the default Access Control List role.
      *
      * @param \AppserverIo\Lang\String $lookupName       The lookup name for the datasource
      * @param string                   $defaultRoleQuery The sql statement to find the default role
      *
-     * @return array An array of groups containing the sets of roles
+     * @return string The default role
      * @throws \AppserverIo\Appserver\ServletEngine\Security\Logi\LoginException Is thrown if an error during login occured
      */
     public static function getDefaultRole(String $lookupName, $defaultRoleQuery)
