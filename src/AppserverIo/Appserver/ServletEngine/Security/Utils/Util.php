@@ -288,30 +288,39 @@ class Util
             // prepare the connection parameters and create the DBAL connection
             $connection = DriverManager::getConnection(ConnectionUtil::get($application)->fromDatabaseNode($databaseNode));
 
-            // try to load the principal's roles from the database
-            if (isset($insertPersonQuery)) {
-                $statement = $connection->prepare($insertPersonQuery);
-                $statement->bindParam(':lastname', $lastname);
-                if (isset($firstname)) {
-                    $statement->bindParam(':firstname', $firstname);
+            // Begin a PDO transaction
+            $connection->beginTransaction();
+            try {
+                // Prepare the queries and execute them
+                if (isset($insertPersonQuery)) {
+                    $statement = $connection->prepare($insertPersonQuery);
+                    $statement->bindParam(':lastname', $lastname);
+                    if (isset($firstname)) {
+                        $statement->bindParam(':firstname', $firstname);
+                    }
+                    $statement->execute();
+                    $personId = $connection->lastInsertId();
+                }
+                $statement = $connection->prepare($insertUserQuery);
+                $statement->bindParam(':email', $email);
+                $statement->bindParam(':username', $username);
+                if (isset($personId)) {
+                    $statement->bindParam(':person', $personId);
                 }
                 $statement->execute();
-                $personId = $connection->lastInsertId();
-            }
-            $statement = $connection->prepare($insertUserQuery);
-            $statement->bindParam(':email', $email);
-            $statement->bindParam(':username', $username);
-            if (isset($personId)) {
-                $statement->bindParam(':person', $personId);
-            }
-            $statement->execute();
-            $userId = $connection->lastInsertId();
+                $userId = $connection->lastInsertId();
 
-            $statement = $connection->prepare($insertRoleQuery);
-            $statement->bindParam(':username', $userId);
-            $statement->bindParam(':role', $defaultRoleId);
-            $statement->execute();
-
+                $statement = $connection->prepare($insertRoleQuery);
+                $statement->bindParam(':username', $userId);
+                $statement->bindParam(':role', $defaultRoleId);
+                $statement->execute();
+                //Commit the transactions
+                $connection->commit();
+            } catch (\PDOException $pdoe) {
+                //Rollback the transaction in case of error
+                $connection->rollBack();
+                throw new \PDOException($pdoe->__toString());
+            }
         } catch (NamingException $ne) {
             throw new LoginException($ne->__toString());
         } catch (\PDOException $pdoe) {
