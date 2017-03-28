@@ -90,11 +90,11 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     protected $ldapBaseDistinguishedName = null;
 
     /**
-     * The ldap object class to use for the query
+     * The ldap filter to search for
      *
      * @var string
      */
-    protected $ldapObjectClass = null;
+    protected $ldapSearchFilter = null;
 
     /**
      * The ldap start tls flag. Enables/disables tls requests to the ldap server
@@ -176,8 +176,8 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         if ($params->exists(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME)) {
             $this->ldapBaseDistinguishedName = $params->get(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME);
         }
-        if ($params->exists(ParamKeys::LDAP_OBJECT_CLASS)) {
-            $this->ldapObjectClass = $params->get(ParamKeys::LDAP_OBJECT_CLASS);
+        if ($params->exists(ParamKeys::LDAP_SEARCH_FILTER)) {
+            $this->ldapSearchFilter = $params->get(ParamKeys::LDAP_SEARCH_FILTER);
         }
         if ($params->exists(ParamKeys::LDAP_START_TLS)) {
             $this->ldapStartTls = $params->get(ParamKeys::LDAP_START_TLS);
@@ -231,8 +231,10 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             //anonymous login
             $bind = ldap_bind($ldap_connection);
 
-            $filter = "(&(objectClass=$this->ldapObjectClass)(uid=$name))";
-            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $filter);
+            // Replace username with the actual username of the user
+            $this->ldapSearchFilter = preg_replace("/username/", "$name", $this->ldapSearchFilter);
+
+            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $this->ldapSearchFilter);
 
             $entry = ldap_first_entry($ldap_connection, $search);
             $dn = ldap_get_dn($ldap_connection, $entry);

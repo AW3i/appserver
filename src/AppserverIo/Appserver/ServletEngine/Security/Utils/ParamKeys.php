@@ -152,14 +152,14 @@ class ParamKeys
     const LDAP_START_TLS = 'ldapStartTls';
 
     /**
-     * The key for the "ldapObjectClass" parameter.
+     * The key for the "ldapSearchFilter" parameter.
      *
      * @var string
      */
-    const LDAP_OBJECT_CLASS = 'ldapObjectClass';
+    const LDAP_SEARCH_FILTER = 'ldapSearchFilter';
 
     /**
-     * The key for the "ldapObjectClass" parameter.
+     * The key for the "userQuery" parameter.
      *
      * @var string
      */

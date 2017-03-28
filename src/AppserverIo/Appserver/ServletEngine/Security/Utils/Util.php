@@ -308,7 +308,7 @@ class Util
             $userId = $connection->lastInsertId();
 
             $statement = $connection->prepare($insertRoleQuery);
-            $statement->bindParam(':user', $userId);
+            $statement->bindParam(':username', $userId);
             $statement->bindParam(':role', $defaultRoleId);
             $statement->execute();
 
