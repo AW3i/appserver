@@ -1069,6 +1069,114 @@ following example, which would enable a Magento installation under `http://magen
 </virtualHosts>
 ```
 
+### Authentication
+
+#### Ldap-Login Module
+
+The appserver also provides an LDAP module for authentication. To use it, use the following xml notation in the context.xml file of your webapplication along wit the required parameters.
+
+```xml
+    <loginModule type="AppserverIo\Appserver\ServletEngine\Security\Auth\Spi\LdapLoginModule" flag="required">
+```
+
+##### Ldap Filter
+To query correctly from the LDAP server one needs to provide a filter query for the ldap server.
+A query searching for the user in openLdap would look like this:
+```xml
+    <param name="ldapSearchFilter" type="string">(&amp;(objectClass=person)(uid=username))</param>
+```
+
+In the above example, username is a placeholder for the actual username of the user trying to login.
+Also don't forget to escape the ampersand(&) in the xml notation.
+
+##### Available Parameters
+
+| Parameter                 | Usage                                                         | Required | Default |
+|---------------------------+---------------------------------------------------------------+----------+---------|
+| lookupName                | Loads the applications datasource                             | yes      |         |
+| ldapUrl                   | The url where the LDAP server resides                         | yes      |         |
+| ldapPort                  | The port where the LDAP server is running                     | no       | 389     |
+| ldapBaseDistinguishedName | The distinguished name to search for in the ldap server       | yes      |         |
+| ldapStartTls              | Enable/disable a TLS connection to the LDAP server            | no       | no      |
+| ldapSearchFilter          | The ldap search filter                                        | yes      |         |
+| userQuery                 | The sql query to find the user in the local database          | yes      |         |
+| insertUserQuery           | The sql query to insert a User in the database                | yes      |         |
+| insertRoleQuery           | The sql query to insert a Role for the user in the database   | yes      |         |
+| insertPersonQuery         | The sql query to insert a Person for the user in the database | no       |         |
+| defaultRoleQuery          | The sql query to find the default role of the application     | yes      |         |
+| rolesQuery                | The query to find the role of the user                        | yes      |         |
+
+##### User/Role/Person Query
+The insertUser/Role/Person Queries use named parameters for their arguments
+
+| Query             | Parameter                  |
+|-------------------+----------------------------|
+| insertUserQuery   | :username, :email, :person |
+| insertRoleQuery   | :username, :role           |
+| insertPersonQuery | :firstname, :lastname      |
+
+
+##### Example context.xml
+An example context.xml using the LDAP module querying and inserting the user/person/role tables.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<context
+        name="routlt"
+        type="AppserverIo\Appserver\Application\Application"
+        xmlns="http://www.appserver.io/appserver">
+
+    <managers>
+        <manager
+                name="ObjectManagerInterface"
+                type="AppserverIo\Appserver\DependencyInjectionContainer\ObjectManager"
+                factory="AppserverIo\Appserver\DependencyInjectionContainer\ObjectManagerFactory">
+            <descriptors>
+                <descriptor>AppserverIo\Description\ServletDescriptor</descriptor>
+                <descriptor>AppserverIo\Description\MessageDrivenBeanDescriptor</descriptor>
+                <descriptor>AppserverIo\Description\StatefulSessionBeanDescriptor</descriptor>
+                <descriptor>AppserverIo\Description\SingletonSessionBeanDescriptor</descriptor>
+                <descriptor>AppserverIo\Description\StatelessSessionBeanDescriptor</descriptor>
+                <descriptor>AppserverIo\Routlt\Description\PathDescriptor</descriptor>
+            </descriptors>
+        </manager>
+        <manager name="AuthenticationManagerInterface" type="AppserverIo\Appserver\ServletEngine\Security\StandardAuthenticationManager" factory="AppserverIo\Appserver\ServletEngine\Security\StandardAuthenticationManagerFactory">
+            <securityDomains>
+                <securityDomain name="example-realm">
+                    <authConfig>
+                        <loginModules>
+                            <loginModule type="AppserverIo\Appserver\ServletEngine\Security\Auth\Spi\LdapLoginModule" flag="required">
+                                <params>
+                                    <param name="lookupName" type="string">php:env/${container.name}/ds/example.project-application</param>
+                                    <param name="saltQuery" type="string"></param>
+                                    <param name="hashAlgorithm" type="string">md5</param>
+                                    <param name="hashEncoding" type="string">hex</param>
+                                    <param name="password-stacking" type="string">useFirstPass</param>
+
+                                    <param name="ldapUrl" type="string">example-ldap.com</param>
+                                    <param name="ldapPort" type="string">389</param>
+                                    <param name="ldapBaseDistinguishedName" type="string">dc=exampleldap,dc=com</param>
+                                    <param name="ldapStartTls" type="string">false</param>
+                                    <param name="ldapSearchFilter" type="string">(&amp;(objectClass=person)(uid=username))</param>
+
+                                    <param name="principalsQuery" type="string">select password from user where username = ?</param>
+                                    <param name="rolesQuery" type="string">SELECT name FROM role r INNER JOIN user_role t ON r.id = t.role_id_fk INNER JOIN user u ON t.user_id_fk = u.id WHERE u.username = ?</param>
+                                    <param name="userQuery" type="string">SELECT * from user where username = ?</param>
+                                    <param name="insertUserQuery">INSERT INTO user(username, email, person_id_fk, enabled) values(:username, :email, (SELECT id from person WHERE id = :person), 1)</param>
+                                    <param name="insertRoleQuery">INSERT INTO user_role(user_id_fk, role_id_fk) VALUES((SELECT id FROM user WHERE id = :user), (SELECT id FROM role where name = :role) )</param>
+                                    <param name="insertPersonQuery">INSERT INTO person(lastname, firstname) values(:lastname, :firstname)</param>
+                                    <param name="defaultRoleQuery">SELECT name from role WHERE name = 'User'</param>
+                                </params>
+                            </loginModule>
+                        </loginModules>
+                    </authConfig>
+                </securityDomain>
+            </securityDomains>
+        </manager>
+    </managers>
+</context>
+```
+
 ## Configuration Defaults
 
 You might be curious about the different ports we use. Per default the appserver will open several
