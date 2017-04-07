@@ -137,6 +137,11 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      * @var \Appserver\Io\Lang\String
      */
     protected $defaultRoleQuery = null;
+
+
+    protected $userRoles;
+   // simple flag to indicate is the validatePassword method was called
+    protected $isPasswordValidated = false;
     /**
      * Initialize the login module. This stores the subject, callbackHandler and sharedState and options
      * for the login session. Subclasses should override if they need to process their own options. A call
@@ -160,6 +165,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         // call the parent method
         parent::initialize($subject, $callbackHandler, $sharedState, $params);
+        $this->userRoles = new SimpleGroup("Roles");
 
         $this->lookupName = new String($params->get(ParamKeys::LOOKUP_NAME));
         $this->rolesQuery = new String($params->get(ParamKeys::ROLES_QUERY));
@@ -277,25 +283,84 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     }
 
     /**
-     * Returns the password for the user from the sharedMap data.
+     * Returns an empty string since one cannot get the ldap password from an ldap login
      *
-     * @return void
+     * @return string returns an empty string
      */
     public function getUsersPassword()
     {
         return null;
     }
+    /**
+     * Validate the inputPassword by creating a LDAP initialcontext with the Security_CREDENTIALS to set the password
+     *
+     * Validate the inputPassword by creating a LDAP InitialContext with the
+     * SECURITY_CREDENTIALS set to the password.
+     * @param inputPassword the password to validate.
+     * @param expectedPassword ignored
+     * @return boolean
+     */
+    public function validatePassword($inputPassword, $expectedPassword)
+    {
+        $this->isPasswordValidated = true;
+        $isValid = false;
+        if (strlen($inputPassword) === 0) {
+            $allowEmptyPasswords = false;
+            $flag = $this->params->get(ALLOW_EMPTY_PASSWORDS);
+            if (isset($flag)) {
+                // $allowEmptyPasswords = Boolean.valueOf(flag).booleanValue()
+                $allowEmptyPasswords = $flag;
+            }
+            if (!(isset($allowEmptyPasswords))) {
+                //logger
+                return false;
+            }
+        }
+
+        try {
+            $username = $this->getUsername();
+            $isValid = $this->createLdapInintContext($username, $inputPassword);
+            $this->defaultRole();
+            $isValid = true;
+        } catch (Exception $e) {
+            //validate exception
+        }
+        return $isValid;
+    }
 
     /**
      * Execute the rolesQuery against the lookupName to obtain the roles for the authenticated user.
      *
+     * Overridden by subclasses to return the Groups that correspond to the to the
+     * role sets assigned to the user. Subclasses should create at least a Group
+     * named "Roles" that contains the roles assigned to the user. A second common
+     * group is "CallerPrincipal" that provides the application identity of the user
+     * rather than the security domain identity.
      * @return array Array containing the sets of roles
+     * return Group[] containing the sets of roles
      * @throws \AppserverIo\Psr\Security\Auth\Login\LoginException Is thrown if password can't be loaded
      */
     protected function getRoleSets()
     {
-        return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
+        // return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
+        // SECURITY-225: check if authentication was already done in a previous login module
+        // and perform role mapping
+        if ($this->isPasswordValidated && $this->getIdentity() != 'unauthenticatedIdentity') {
+            try {
+                $username = $this->getUsername();
+                // PicketBoxLogger.LOGGER.traceBindingLDAPUsername(username);
+                $this->createLdapInitContext($username, null);
+                $this->defaultRole();
+            } catch (Exception $e) {
+                throw new LoginException(sprintf('', $e));
+            }
+        }
+
+        $roleSets = new SimpleGroup();
+        $roleSets->addMember($this->userRoles);
+        return $roleSets;
     }
+
 
     /**
      * return's the authenticated user identity.
@@ -305,5 +370,23 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     protected function getidentity()
     {
         return $this->identity;
+    }
+
+    /**
+     @todo move to a generic role mapping function at the base login module
+     */
+    protected function defaultRole()
+    {
+        $defaultRole =  $this->params->get(DEFAULT_ROLE);
+        try {
+            if (isset($defaultRole)) {
+                return;
+            }
+            $p = $this->createIdentity($defaultRole);
+            // PicketBoxLogger.LOGGER.traceAssignUserToRole(defaultRole);
+            $this->userRoles->addMember($p);
+        } catch (Exception $e) {
+            // PicketBoxLogger.LOGGER.debugFailureToCreatePrincipal(defaultRole, e);
+        }
     }
 }

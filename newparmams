@@ -1,0 +1,28 @@
+- baseCtxDn the fixed dn of the context to start the user search from
+
+- bindDn the dn used to bind againstthe ldap server for the user and role queries. DN with read/search permissions on basectxDN && rolesCtxDn
+
+- rolesCtxDn the fixed dn of the contxt to search for user roles.
+    Consider that this is not the Distinguished Name of where the actual roles are;
+    rather this is the DN of where the objects containg the user roles are
+
+- roleFilter A search filter ued to locate the roles associated with the **authenticated** user
+
+ * __roleAttributeIsDN__ : A flag indicating whether the user's role attribute
+ contains the fully distinguished name of a role object, or the users's role
+ attribute contains the role name. If false, the role name is taken from the
+ value of the user's role attribute. If true, the role attribute represents the
+ distinguished name of a role object.  The role name is taken from the value of
+ the roleNameAttributeId` attribute of the corresponding object.  In certain
+ directory schemas (e.g., Microsoft Active Directory), role (group)attributes in
+ the user object are stored as DNs to role objects instead of as simple names, in
+ which case, this property should be set to true. The default value of this
+ property is false.
+
+ * __roleNameAttributeID__ : The name of the attribute of the role object which
+ corresponds to the name of the role.  If the __roleAttributeIsDN__ property is
+ set to true, this property is used to find the role object's name attribute. If
+ the __roleAttributeIsDN__ property is set to false, this property is ignored.
+
+ * __roleRecursion__ : How deep the role search will go below a given matching
+ context. Disable with 0, which is the default.
