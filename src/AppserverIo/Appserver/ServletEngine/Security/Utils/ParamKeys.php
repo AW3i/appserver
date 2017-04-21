@@ -124,74 +124,60 @@ class ParamKeys
     const ROLES_PATH_PREFIX = 'rolesPathPrefix';
 
     /**
-     * The key for the "ldapUrl" parameter.
+     * The key for the "url" parameter.
      *
      * @var string
      */
-    const LDAP_URL = 'ldapUrl';
+    const URL = 'url';
 
     /**
-     * The key for the "ldapPort" parameter.
+     * The key for the "port" parameter.
      *
      * @var string
      */
-    const LDAP_PORT = 'ldapPort';
+    const PORT = 'port';
 
     /**
-     * The key for the "ldapBaseDistinguishedName" parameter.
+     * The key for the "bindDistinguishedName" parameter.
      *
      * @var string
      */
-    const LDAP_BASE_DISTINGUISHED_NAME = 'ldapBaseDistinguishedName';
+    const BIND_DN = 'bindDistinguishedName';
 
     /**
-     * The key for the "ldapStartTls" parameter.
+     * The key for the "bindCredential" parameter.
      *
      * @var string
      */
-    const LDAP_START_TLS = 'ldapStartTls';
+    const BIND_CREDENTIAL = 'bindCredential';
 
     /**
-     * The key for the "ldapSearchFilter" parameter.
-     *
-     * @var string
+     * The key for the "StartTls";
      */
-    const LDAP_SEARCH_FILTER = 'ldapSearchFilter';
+    const START_TLS = 'startTls';
 
     /**
-     * The key for the "userQuery" parameter.
+     * The key for the "userFilter" parameter.
      *
      * @var string
      */
-    const USER_QUERY = 'userQuery';
+    const USER_FILTER = 'userFilter';
 
     /**
-     * The key for the "insertUserQuery" parameter.
+     * The key for the "roleFilter" parameter.
      *
      * @var string
      */
-    const INSERT_USER_QUERY = 'insertUserQuery';
+    const ROLE_FILTER = 'roleFilter';
 
     /**
-     * The key for the "insertRoleQuery" parameter.
+     * The key for the "allowEmptyPasswords" parameter.
      *
      * @var string
      */
-    const INSERT_ROLE_QUERY = 'insertRoleQuery';
+    const ALLOW_EMPTY_PASSWORDS = 'allowEmptyPasswords';
 
-    /**
-     * The key for the "insertPersonQuery" parameter.
-     *
-     * @var string
-     */
-    const INSERT_PERSON_QUERY = 'insertPersonQuery';
 
-    /**
-     * The key for the "defaultRoleQuery" parameter.
-     *
-     * @var string
-     */
-    const DEFAULT_ROLE_QUERY = 'defaultRoleQuery';
 
     /**
      * This is a utility class, so protect it against direct instantiation.
