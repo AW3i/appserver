@@ -142,7 +142,7 @@ class ParamKeys
      *
      * @var string
      */
-    const BIND_DN = 'bindDistinguishedName';
+    const BIND_DN = 'bindDN';
 
     /**
      * The key for the "bindCredential" parameter.
