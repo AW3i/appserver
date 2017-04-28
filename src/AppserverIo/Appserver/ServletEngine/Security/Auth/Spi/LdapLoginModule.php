@@ -152,7 +152,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     *
     * @var boolean
     */
-    protected $roleAttributeIsDn;
+    protected $roleAttributeIsDN;
 
     /**
      * parseRoleNameFromDN
@@ -177,6 +177,13 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      * @var boolean
      */
     protected $ldapStartTls = null;
+
+    /**
+     *
+     *
+     * @var boolean
+     */
+    protected $allowEmptyPasswords = null;
 
 
     /**
@@ -216,19 +223,43 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->ldapPort = $params->get(ParamKeys::PORT);
         }
         if ($params->exists(ParamKeys::BIND_DN)) {
-            $this->ldapPort = $params->get(ParamKeys::BIND_DN);
+            $this->bindDN= $params->get(ParamKeys::BIND_DN);
         }
         if ($params->exists(ParamKeys::BIND_CREDENTIAL)) {
-            $this->ldapPort = $params->get(ParamKeys::BIND_CREDENTIAL);
+            $this->bindCredential = $params->get(ParamKeys::BIND_CREDENTIAL);
         }
-        if ($params->exists(ParamKeys::USER_FILTER)) {
-            $this->ldapSearchFilter = $params->get(ParamKeys::USER_FILTER);
+        if ($params->exists(ParamKeys::BASE_FILTER)) {
+            $this->baseFilter = $params->get(ParamKeys::BASE_FILTER);
+        }
+        if ($params->exists(ParamKeys::ROLES_CTX_DN)) {
+            $this->rolesCtxDN = $params->get(ParamKeys::ROLES_CTX_DN);
         }
         if ($params->exists(ParamKeys::ROLE_FILTER)) {
-            $this->ldapSearchFilter = $params->get(ParamKeys::ROLE_FILTER);
+            $this->roleFilter = $params->get(ParamKeys::ROLE_FILTER);
+        }
+        if ($params->exists(ParamKeys::ROLE_ATTRIBUTE_ID)) {
+            $this->roleAttributeID = $params->get(ParamKeys::ROLE_ATTRIBUTE_ID);
+        }
+        if ($params->exists(ParamKeys::ROLE_NAME_ATTRIBUTE_ID)) {
+            $this->roleNameAttributeID = $params->get(ParamKeys::ROLE_NAME_ATTRIBUTE_ID);
+        }
+        if ($params->exists(ParamKeys::ROLE_ATTRIBUTE_IS_DN)) {
+            $this->roleAttributeIsDN = $params->get(ParamKeys::ROLE_ATTRIBUTE_IS_DN);
+        }
+        if ($params->exists(ParamKeys::PARSE_ROLE_NAME_FROM_DN)) {
+            $this->parseRoleNameFromDN = $params->get(ParamKeys::PARSE_ROLE_NAME_FROM_DN);
+        }
+        if ($params->exists(ParamKeys::RECURSION)) {
+            $this->recursion = $params->get(ParamKeys::RECURSION);
+        }
+        if ($params->exists(ParamKeys::IS_PASSWORD_VALIDATED)) {
+            $this->isPasswordValidated = $params->get(ParamKeys::IS_PASSWORD_VALIDATED);
         }
         if ($params->exists(ParamKeys::START_TLS)) {
             $this->ldapStartTls = $params->get(ParamKeys::START_TLS);
+        }
+        if ($params->exists(ParamKeys::ALLOW_EMPTY_PASSWORDS)) {
+            $this->allowEmptyPasswords = $params->get(ParamKeys::ALLOW_EMPTY_PASSWORDS);
         }
     }
 
@@ -268,9 +299,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $bind = ldap_bind($ldap_connection);
 
             // Replace username with the actual username of the user
-            $this->ldapSearchFilter = preg_replace("/username/", "$name", $this->ldapSearchFilter);
+            $this->$baseFilter = preg_replace("/username/", "$name", $this->$baseFilter);
 
-            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $this->ldapSearchFilter);
+            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $this->$baseFilter);
 
             $entry = ldap_first_entry($ldap_connection, $search);
             $dn = ldap_get_dn($ldap_connection, $entry);

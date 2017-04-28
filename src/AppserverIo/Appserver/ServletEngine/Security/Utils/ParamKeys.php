@@ -227,20 +227,6 @@ class ParamKeys
     const START_TLS = 'startTls';
 
     /**
-     * The key for the "userFilter" parameter.
-     *
-     * @var string
-     */
-    const USER_FILTER = 'userFilter';
-
-    /**
-     * The key for the "roleFilter" parameter.
-     *
-     * @var string
-     */
-    const ROLE_FILTER = 'roleFilter';
-
-    /**
      * The key for the "allowEmptyPasswords" parameter.
      *
      * @var string
