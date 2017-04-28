@@ -152,6 +152,76 @@ class ParamKeys
     const BIND_CREDENTIAL = 'bindCredential';
 
     /**
+     * The key for the "baseDN" parameter.
+     *
+     * @var string
+     */
+    const BASE_DN = 'baseDN';
+
+    /**
+     * The key for the "baseFilter" parameter.
+     *
+     * @var string
+     */
+    const BASE_FILTER = 'baseFilter';
+
+    /**
+     * The key for the "rolesCtxDN" parameter.
+     *
+     * @var string
+     */
+    const ROLES_CTX_DN = 'rolesCtxDN';
+
+    /**
+     * The key for the "roleFilter" parameter.
+     *
+     * @var string
+     */
+    const ROLE_FILTER = 'roleFilter';
+
+    /**
+     * The key for the "roleAttributeID" parameter.
+     *
+     * @var string
+     */
+    const ROLE_ATTRIBUTE_ID = 'roleAttributeID';
+
+    /**
+     * The key for the "roleNameAttributeID" parameter.
+     *
+     * @var string
+     */
+    const ROLE_NAME_ATTRIBUTE_ID = 'roleNameAttributeID';
+
+    /**
+     * The key for the "roleAttributeIsDn" parameter.
+     *
+     * @var string
+     */
+    const ROLE_ATTRIBUTE_IS_DN = 'roleAttributeIsDN';
+
+    /**
+     * The key for the "parseRoleNameFromDn" parameter.
+     *
+     * @var string
+     */
+    const PARSE_ROLE_NAME_FROM_DN = 'parseRoleNameFromDN';
+
+    /**
+     * The key for the "recursion" parameter.
+     *
+     * @var string
+     */
+    const RECURSION = 'recursion';
+
+    /**
+     * The key for the "isPasswordValidated" parameter.
+     *
+     * @var string
+     */
+    const IS_PASSWORD_VALIDATED = 'isPasswordValidated';
+
+    /**
      * The key for the "StartTls";
      */
     const START_TLS = 'startTls';

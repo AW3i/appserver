@@ -83,18 +83,93 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
     protected $ldapPort = null;
 
     /**
+     * bindDN
+     *
+     * @var string
+     */
+    protected $bindDN = null;
+
+    /**
+     * bindCredential
+     *
+     * @var string
+     */
+    protected $bindCredential = null;
+
+    /**
      * The ldap servers distinguished base name
      *
      * @var string
      */
-    protected $ldapBaseDistinguishedName = null;
+    protected $baseDN = null;
 
     /**
      * The ldap filter to search for
      *
      * @var string
      */
-    protected $ldapSearchFilter = null;
+    protected $baseFilter = null;
+
+    /**
+     * rolesCtxDN
+     *
+     * @var string
+     */
+    protected $rolesCtxDN = null;
+
+    /**
+     * roleFilter
+     *
+     * @var string
+     */
+    protected $roleFilter = null;
+
+    /**
+     *
+     *
+     * @var string
+     */
+    protected $roleAttributeID = null;
+
+    /**
+     * roleNameAttributeID
+     *
+     * @var boolean
+     */
+    protected $roleNameAttributeID = null;
+
+   /**
+    * A flag indicating whether the user's role attribute
+    * contains the fully distinguished name of a role object, or the users's role
+    * attribute contains the role name. If false, the role name is taken from the
+    * value of the user's role attribute. If true, the role attribute represents the
+    * distinguished name of a role object.  The role name is taken from the value of
+    * the roleNameAttributeId` attribute of the corresponding object.  In certain
+    * directory schemas (e.g., Microsoft Active Directory), role (group)attributes in
+    * the user object are stored as DNs to role objects instead of as simple names, in
+    * which case, this property should be set to true. The default value of this
+    * property is false.
+    *
+    * @var boolean
+    */
+    protected $roleAttributeIsDn;
+
+    /**
+     * parseRoleNameFromDN
+     *
+     * @var boolean
+     */
+    protected $parseRoleNameFromDN = null;
+
+    /**
+     * recursion
+     *
+     * @var int
+     */
+    protected $recursion = null;
+
+    // simple flag to indicate is the validatePassword method was called
+    protected $isPasswordValidated = false;
 
     /**
      * The ldap start tls flag. Enables/disables tls requests to the ldap server
@@ -103,40 +178,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected $ldapStartTls = null;
 
-    /**
-     * The userQuery to find the user
-     *
-     * @var \Appserver\Io\Lang\String
-     */
-    protected $userQuery = null;
 
-    /**
-     * The insertUserQuery to insert the new ldap user
-     *
-     * @var \Appserver\Io\Lang\String
-     */
-    protected $insertUserQuery = null;
-
-    /**
-     * The insertRoleQuery to insert the new ldap role
-     *
-     * @var \Appserver\Io\Lang\String
-     */
-    protected $insertRoleQuery = null;
-
-    /**
-     * The insertPersonQuery to insert the new ldap person
-     *
-     * @var \Appserver\Io\Lang\String
-     */
-    protected $insertPersonQuery = null;
-
-    /**
-     * The default role to find
-     *
-     * @var \Appserver\Io\Lang\String
-     */
-    protected $defaultRoleQuery = null;
     /**
      * Initialize the login module. This stores the subject, callbackHandler and sharedState and options
      * for the login session. Subclasses should override if they need to process their own options. A call
@@ -167,32 +209,26 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         $this->userQuery = new String($params->get(ParamKeys::USER_QUERY));
 
         // initialize the hash encoding to use
-        if ($params->exists(ParamKeys::LDAP_URL)) {
-            $this->ldapUrl = $params->get(ParamKeys::LDAP_URL);
+        if ($params->exists(ParamKeys::URL)) {
+            $this->ldapUrl = $params->get(ParamKeys::URL);
         }
-        if ($params->exists(ParamKeys::LDAP_PORT)) {
-            $this->ldapPort = $params->get(ParamKeys::LDAP_PORT);
+        if ($params->exists(ParamKeys::PORT)) {
+            $this->ldapPort = $params->get(ParamKeys::PORT);
         }
-        if ($params->exists(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME)) {
-            $this->ldapBaseDistinguishedName = $params->get(ParamKeys::LDAP_BASE_DISTINGUISHED_NAME);
+        if ($params->exists(ParamKeys::BIND_DN)) {
+            $this->ldapPort = $params->get(ParamKeys::BIND_DN);
         }
-        if ($params->exists(ParamKeys::LDAP_SEARCH_FILTER)) {
-            $this->ldapSearchFilter = $params->get(ParamKeys::LDAP_SEARCH_FILTER);
+        if ($params->exists(ParamKeys::BIND_CREDENTIAL)) {
+            $this->ldapPort = $params->get(ParamKeys::BIND_CREDENTIAL);
         }
-        if ($params->exists(ParamKeys::LDAP_START_TLS)) {
-            $this->ldapStartTls = $params->get(ParamKeys::LDAP_START_TLS);
+        if ($params->exists(ParamKeys::USER_FILTER)) {
+            $this->ldapSearchFilter = $params->get(ParamKeys::USER_FILTER);
         }
-        if ($params->exists(ParamKeys::INSERT_USER_QUERY)) {
-            $this->insertUserQuery = $params->get(ParamKeys::INSERT_USER_QUERY);
+        if ($params->exists(ParamKeys::ROLE_FILTER)) {
+            $this->ldapSearchFilter = $params->get(ParamKeys::ROLE_FILTER);
         }
-        if ($params->exists(ParamKeys::INSERT_ROLE_QUERY)) {
-            $this->insertRoleQuery = $params->get(ParamKeys::INSERT_ROLE_QUERY);
-        }
-        if ($params->exists(ParamKeys::INSERT_PERSON_QUERY)) {
-            $this->insertPersonQuery = $params->get(ParamKeys::INSERT_PERSON_QUERY);
-        }
-        if ($params->exists(ParamKeys::DEFAULT_ROLE_QUERY)) {
-            $this->defaultRoleQuery = $params->get(ParamKeys::DEFAULT_ROLE_QUERY);
+        if ($params->exists(ParamKeys::START_TLS)) {
+            $this->ldapStartTls = $params->get(ParamKeys::START_TLS);
         }
     }
 
@@ -242,12 +278,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             if (!(isset($dn))) {
                 throw new LoginException(sprintf('User not found in ldap directory'));
             }
-            //get the ldap object for the current user
-            $ldapUserAttributes = ldap_get_attributes($ldap_connection, $entry);
-
-            $email = $ldapUserAttributes['mail'][0];
-            $firstname = $ldapUserAttributes['givenName'][0];
-            $lastname = $ldapUserAttributes['sn'][0];
         } else {
             throw new LoginException(sprintf('Couldn\'t connect to ldap server'));
         }
@@ -262,14 +292,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             // add the username and password to the shared state map
             $this->sharedState->add(SharedStateKeys::LOGIN_NAME, $name);
             $this->sharedState->add(SharedStateKeys::LOGIN_PASSWORD, $this->credential);
-        }
-
-        // Check if the ldap user exists
-        if (!(Util::isUserRegistered($this->getUsername(), new String($this->lookupName), new String($this->userQuery)))) {
-            //get the default role id
-            $defaultRoleId = Util::getDefaultRole(new String($this->lookupName), $this->defaultRoleQuery);
-            //Insert the ldap user to the local database
-            Util::insertUser($this->getUsername(), new String($this->lookupName), $this->insertUserQuery, $this->insertRoleQuery, $defaultRoleId, $this->insertPersonQuery, $email, $firstname, $lastname);
         }
 
         $this->loginOk = true;
