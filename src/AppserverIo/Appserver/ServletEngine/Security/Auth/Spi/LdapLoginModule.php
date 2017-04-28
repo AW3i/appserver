@@ -296,12 +296,16 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             }
 
             //anonymous login
-            $bind = ldap_bind($ldap_connection);
+            if ($this->allowEmptyPasswords) {
+                $bind = ldap_bind($ldap_connection);
+            } else {
+                $bind = ldap_bind($ldap_connection, $this->bindDN, $this->bindCredential);
+            }
 
             // Replace username with the actual username of the user
             $this->$baseFilter = preg_replace("/username/", "$name", $this->$baseFilter);
 
-            $search = ldap_search($ldap_connection, $this->ldapBaseDistinguishedName, $this->$baseFilter);
+            $search = ldap_search($ldap_connection, $this->bindDN, $this->$baseFilter);
 
             $entry = ldap_first_entry($ldap_connection, $search);
             $dn = ldap_get_dn($ldap_connection, $entry);
