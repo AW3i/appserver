@@ -8,6 +8,7 @@
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is available through the world-wide-web at this URL:
  * http://opensource.org/licenses/osl-3.0.php
+    }
  *
  * PHP version 5
  *
@@ -178,6 +179,13 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected $allowEmptyPasswords = null;
 
+    /**
+     * setsMap
+     *
+     * @var mixed
+     */
+    protected $setsMap = null;
+
 
     /**
      * Initialize the login module. This stores the subject, callbackHandler and sharedState and options
@@ -255,6 +263,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         if ($params->exists(ParamKeys::ALLOW_EMPTY_PASSWORDS)) {
             $this->allowEmptyPasswords = $params->get(ParamKeys::ALLOW_EMPTY_PASSWORDS);
         }
+        $this->setsMap = new HashMap();
     }
 
     /**
@@ -282,31 +291,16 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
                 throw new LoginException(sprintf('Failed to create principal: %s', $e->getMessage()));
             }
         }
-        $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
-        // ldap_set_option($ldap_connection,LDAP_OPT_PROTOCOL_VERSION,3);
-
+        $ldap_connection = $this->ldapConnect();
         if ($ldap_connection) {
-            if ($this->ldapStartTls == 'true') {
-                ldap_start_tls($ldap_connection);
-            }
-
-            //anonymous login
-            if ($this->allowEmptyPasswords === true) {
-                $bind = ldap_bind($ldap_connection);
-            } else {
-                $bind = ldap_bind($ldap_connection, $this->bindDN, $this->bindCredential);
-            }
-
             // Replace username with the actual username of the user
             $this->baseFilter = preg_replace("/username/", "$name", $this->baseFilter);
 
             $search = ldap_search($ldap_connection, $this->baseDN, $this->baseFilter);
 
-            var_dump($this->baseDN);
 
             $entry = ldap_first_entry($ldap_connection, $search);
             $dn = ldap_get_dn($ldap_connection, $entry);
-            var_dump($dn);
 
             if (!(isset($dn))) {
                 throw new LoginException(sprintf('User not found in ldap directory'));
@@ -316,7 +310,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         }
 
         $bind = ldap_bind($ldap_connection, $dn, $password);
-        if ($bind == false) {
+        if ($bind === false) {
             throw new LoginException(sprintf('Username or password wrong'));
         }
 
@@ -326,8 +320,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->sharedState->add(SharedStateKeys::LOGIN_NAME, $name);
             $this->sharedState->add(SharedStateKeys::LOGIN_PASSWORD, $this->credential);
         }
-        $this->roleFilter = preg_replace("/username/", "$name", $this->roleFilter);
-        $this->rolesSearch($ldap_connection, $name, $dn, 0, 0);
+        $this->rolesSearch($name, $dn, 0, 0);
 
         $this->loginOk = true;
         return true;
@@ -355,177 +348,115 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
-        //Check if authentication was already done in a previous login module
-            //TODO probably not needed in our case since login is getting first
-            // if (!(isset($this->isPasswordValidated)) && $this->getIdentity() !== $this->unauthenticatedIdentity) {
-            //     try {
-            //         $username = $this->getUsername();
-            //         //createLdapInitContewxt
-            //         $this->defaultRole();
-            //     } catch (Exception $e) {
-            //         throw new Exception($e);
-            //     }
-            // }
-            //
-            // //Simplegroup
-            // $roleSets = $this->userRoles();
-            // return $roleSets;
-            // return Util::getRoleSets($this->getUsername(), new String($this->lookupName), new String($this->rolesQuery), $this);
-        }
+        return $this->setsMap->toArray();
+    }
 
-        /**
-        * return's the authenticated user identity.
-        *
-        * @return \appserverio\psr\security\principalinterface the user identity
-        */
-        protected function getidentity()
-        {
-            return $this->identity;
-        }
-
-
-        /**
-        * has_next
-        *
-        * @param array $a
-        */
-        protected function hasNext(array $a)
-        {
-            return next($a) !== false ?: each($a) !== false;
-        }
-
-        /**
-        * Search Roles searches the authenticated user for his user groups/roles
-        * The found roles are then added to addRole()
+    /**
+     * Adds a role to the setsMap
      *
      * @return void
      */
-    protected function rolesSearch($context, $user, $userDN, $recursionMax, $nesting)
+    protected function addRole($role, $name)
+    {
+        if ($this->setsMap->exists($role) === false) {
+            $group = new SimpleGroup(new String($role));
+            $this->setsMap->add($role, $group);
+        } else {
+            $group = $this->setsMap->get($role);
+        }
+        $group->addMember($this->createIdentity(new String($name)));
+    }
+
+    /**
+     * Extracts the common name from a Distinguished name
+     *
+     * @param string $dn
+     * @return string
+     * TODO In case of more than one key value showing up it's going to get overwritten
+     */
+    protected function extractCNFromDN($dn)
+    {
+        $splitArray = explode(',', $dn);
+        $keyValue = array();
+        foreach ($splitArray as $value) {
+            $tempArray  = explode('=', $value);
+            $keyValue[$tempArray[0]] = $tempArray[1];
+        }
+
+        return $keyValue['cn'];
+    }
+
+    /**
+    * return's the authenticated user identity.
+    *
+    * @return \appserverio\psr\security\principalinterface the user identity
+    */
+    protected function getidentity()
+    {
+        return $this->identity;
+    }
+
+    /**
+    * has_next
+    *
+    * @param array $a
+    */
+    protected function hasNext(array $a)
+    {
+        return next($a) !== false ?: each($a) !== false;
+    }
+
+    /**
+     * Creates a new connection to the ldap server, binds to the ldap server and returns the connection
+     *
+     * @return resource|false
+     */
+    protected function ldapConnect()
+    {
+
+        $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
+
+        if ($ldap_connection) {
+            if ($this->ldapStartTls == 'true') {
+                ldap_start_tls($ldap_connection);
+            }
+            ldap_set_option($ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+
+            //anonymous login
+            if ($this->allowEmptyPasswords === true) {
+                $bind = ldap_bind($ldap_connection);
+            } else {
+                $bind = ldap_bind($ldap_connection, $this->bindDN, $this->bindCredential);
+            }
+            if (!$bind) {
+                throw new LoginException('Bind to server failed');
+            }
+        } else {
+            return false;
+        }
+        return $ldap_connection;
+    }
+
+    /**
+     * Search Roles searches the authenticated user for his user groups/roles
+     * The found roles are then added to  the roles
+     *
+     * @return void
+     */
+    protected function rolesSearch($user, $userDN, $recursionMax, $nesting)
     {
         if ($this->rolesCtxDN === null || $this->roleFilter === null) {
             return;
         }
-
-        $ldapCtx = $context;
-        // Object[] filterArgs = {user, sanitizeDN(userDN)};
-        $referralsExist = true;
-        // while ($referralsExist) {
-            $results = ldap_search($ldapCtx, $this->baseDN, $this->roleFilter);
-            try {
-                //TODO check how the hasNext function is working
-                // while ($this->hasNext($results)) {
-                    // $searchResult = next($results);
-
-                    // $dn = null;
-                    $entry = ldap_first_entry($context, $results);
-                    $dn = ldap_get_dn($context, $entry);
-                    var_dump($dn);
-                    // if ($searchResult->isRelative()) {
-                    //         //TODO
-                    //     $dn = canonicalize($searchResult->getName());
-                    // } else {
-                    //         //TODO
-                    //     $dn = $searchResult->getNameInNamespace();
-                    // }
-                    // if ($nesting === 0 && $this->roleAttributeIsDN && $this->roleNameAttributeID !== null) {
-                    //     if ($this->parseRoleNameFromDN) {
-                    //         //TODO
-                    //         $this->parseRole($dn);
-                    //     } else {
-                            // Check the top context for role names
-                            //String []
-                            // $attrNames = array($this->roleNameAttributeID);
-                            // //Attributes
-                            // $result2 = null;
-                            // if (sr.isRelative()) {
-                            // not going to work attrNames needs to be a result entry identifier
-                            // $result2 = ldap_get_attributes($ldapCtx, $attrNames);
-                            // // }
-                            // else {
-                            //    result2 = getAttributesFromReferralEntity(sr, user, userDN);
-                            // }
-                            //TODO
-                            // $roles2 = ($result2 !== null ? $result2.get($this->roleNameAttributeID) : null);
-                            // if ($roles2 !== null ) {
-                            //     for ($m = 0; m < $roles2.size(); $m++) {
-                            //         //TODO
-                            //         $roleName = $roles2.get($m);
-                            //         //TODO
-                            //         $this->addRole($roleName);
-                            //     }
-                        //     }
-                        // }
-                    // }
-
-                    // Query the context for the roleDN values
-                    // $attrNames = roleAttributeID;
-                    // $result = null;
-                    // if ($searchResult->isRelative()) {
-                        // SECURITY-891
-                        //TODO
-                        // $result = $searchResult->getAttributes();
-                        // if (count($result) === 0) {
-                        //     $result = ldap_get_attributes($ldapCtx, $attrNames);
-                        // }
-                    // }
-                    // else {
-                    //    result = getAttributesFromReferralEntity(sr, user, userDN);
-                    // }
-                    // if ($result !== null && count($result )> 0) {
-                    //     //TODO
-                    //     $roles = $result.get(roleAttributeID);
-                    //     for ($n = 0; $n < count(roles); $n++) {
-                    //         //TODO
-                    //         $roleName = roles.get($n);
-                    //         if ($this->roleAttributeIsDN && $this->parseRoleNameFromDN) {
-                    //             $this->parseRole($roleName);
-                    //         } elseif ($this->roleAttributeIsDN) {
-                                // // Query the roleDN location for the value of roleNameAttributeID
-                                // $roleDN = $this->quoteDN($roleName);
-                                // TODO find out what {variable} does
-                                // $returnAttribute = {roleNameAttributeID};
-                                // try {
-                                    // $result2 = null;
-                                    // if (sr.isRelative()) {
-                                    //    //TODO
-                                    //    $result2 = ldapCtx.getAttributes(roleDN, returnAttribute);
-                                    // }
-                                    // else {
-                                    //    $result2 = getAttributesFromReferralEntity(sr, user, userDN);
-                                    // }
-
-                                    //TODO
-                            //         $roles2 = ($result2 !== null ? $result2.get($roleNameAttributeID) : null);
-                            //         if ($roles2 != null) {
-                            //             for ($m = 0; $m < count(roles2); $m++)
-                            //             {
-                            //                 //TODO
-                            //                 $roleName = $roles2.get($m);
-                            //                 $this->addRole($roleName);
-                            //             }
-                            //         }
-                            //     } catch (NamingException $e) {
-                            //     // PicketBoxLogger.LOGGER.debugFailureToQueryLDAPAttribute(roleNameAttributeID, roleDN, e);
-                            //     }
-                            // } else {
-                            //     // The role attribute value is the role name
-                            //     $this->addRole($roleName);
-                            // }
-                    //     }
-                    // }
-                    //
-                    // if ($nesting < $recursionMax) {
-                    //     $this->rolesSearch($ldapCtx, $constraints, $user, $dn, $recursionMax, $nesting + 1);
-                    // }
-                // }
-                // $referralsExist = false;
-            } catch (ReferralException $e) {
-                // ldapCtx = (LdapContext) e.getReferralContext();
-            } finally {
-                // if ($results !== null) {
-                //     $results->close();
-                // }
-            }
-        // } // while (referralsExist)
+        $ldap_connection = $this->ldapConnect();
+        $this->roleFilter = preg_replace("/username/", "$user", $this->roleFilter);
+        $search = ldap_search($ldap_connection, $this->rolesCtxDN, $this->roleFilter);
+        $entry = ldap_first_entry($ldap_connection, $search);
+        do {
+            $dn = ldap_get_dn($ldap_connection, $entry);
+            var_dump($dn);
+            $role = $this->extractCNFromDN($dn);
+            $this->addRole($role, $user);
+        } while ($entry = ldap_next_entry($ldap_connection, $entry));
     }
 }
