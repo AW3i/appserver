@@ -320,7 +320,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
             $this->sharedState->add(SharedStateKeys::LOGIN_NAME, $name);
             $this->sharedState->add(SharedStateKeys::LOGIN_PASSWORD, $this->credential);
         }
-        $this->rolesSearch($name, $dn, 0, 0);
+        $this->rolesSearch($name);
 
         $this->loginOk = true;
         return true;
@@ -348,6 +348,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
+        var_dump($this->setsMap->toArray());
         return $this->setsMap->toArray();
     }
 
@@ -356,15 +357,18 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      *
      * @return void
      */
-    protected function addRole($role, $name)
+    protected function addRole($groupName, $name)
     {
-        if ($this->setsMap->exists($role) === false) {
-            $group = new SimpleGroup(new String($role));
-            $this->setsMap->add($role, $group);
+        if ($this->setsMap->exists($groupName) === false) {
+            $group = new SimpleGroup(new String($groupName));
+            $this->setsMap->add($groupName, $group);
         } else {
-            $group = $this->setsMap->get($role);
+            $group = $this->setsMap->get($groupName);
         }
-        $group->addMember($this->createIdentity(new String($name)));
+        try {
+            $group->addMember($this->createIdentity(new String($name)));
+        } catch (\Exception $e) {
+        }
     }
 
     /**
@@ -443,20 +447,22 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      *
      * @return void
      */
-    protected function rolesSearch($user, $userDN, $recursionMax, $nesting)
+    protected function rolesSearch($user)
     {
         if ($this->rolesCtxDN === null || $this->roleFilter === null) {
             return;
         }
-        $ldap_connection = $this->ldapConnect();
-        $this->roleFilter = preg_replace("/username/", "$user", $this->roleFilter);
-        $search = ldap_search($ldap_connection, $this->rolesCtxDN, $this->roleFilter);
-        $entry = ldap_first_entry($ldap_connection, $search);
-        do {
-            $dn = ldap_get_dn($ldap_connection, $entry);
-            var_dump($dn);
-            $role = $this->extractCNFromDN($dn);
-            $this->addRole($role, $user);
-        } while ($entry = ldap_next_entry($ldap_connection, $entry));
+
+        $groupName = Util::DEFAULT_GROUP_NAME;
+        $this->addRole($groupName, $user);
+        // $ldap_connection = $this->ldapConnect();
+        // $this->roleFilter = preg_replace("/username/", "$user", $this->roleFilter);
+        // $search = ldap_search($ldap_connection, $this->rolesCtxDN, $this->roleFilter);
+        // $entry = ldap_first_entry($ldap_connection, $search);
+        // do {
+        //     $dn = ldap_get_dn($ldap_connection, $entry);
+        //     $role = $this->extractCNFromDN($dn);
+        //     $this->addRole($role, $user);
+        // } while ($entry = ldap_next_entry($ldap_connection, $entry));
     }
 }
