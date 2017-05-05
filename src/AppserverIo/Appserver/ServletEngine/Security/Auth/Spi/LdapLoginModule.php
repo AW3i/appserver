@@ -348,7 +348,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      */
     protected function getRoleSets()
     {
-        // var_dump($this->setsMap->toArray());
         return $this->setsMap->toArray();
     }
 
@@ -375,8 +374,9 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      * Extracts the common name from a Distinguished name
      *
      * @param string $dn
-     * @return string
-     * TODO In case of more than one key value showing up it's going to get overwritten
+     * @return array
+     * TODO security issue, if someone has the dn: cn=user and one wants to login with the dn: ou=techdivision, cn=user both would pass
+     *
      */
     protected function extractCNFromDN($dn)
     {
@@ -384,7 +384,8 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         $keyValue = array();
         foreach ($splitArray as $value) {
             $tempArray  = explode('=', $value);
-            $keyValue[$tempArray[0]] = $tempArray[1];
+            $keyValue[$tempArray[0]] = array();
+            $keyValue[$tempArray[0]][] = $tempArray[1];
         }
 
         return $keyValue['cn'];
@@ -460,8 +461,10 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         $entry = ldap_first_entry($ldap_connection, $search);
         do {
             $dn = ldap_get_dn($ldap_connection, $entry);
-            $role = $this->extractCNFromDN($dn);
-            $this->addRole($groupName, $role);
+            $roleArray = $this->extractCNFromDN($dn);
+            foreach ($roleArray as $role) {
+                $this->addRole($groupName, $role);
+            }
         } while ($entry = ldap_next_entry($ldap_connection, $entry));
     }
 }
