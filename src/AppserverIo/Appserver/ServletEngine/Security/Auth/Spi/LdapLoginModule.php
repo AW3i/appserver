@@ -280,11 +280,11 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         // array containing the username and password from the user's input
         list ($name, $password) = $this->getUsernameAndPassword();
 
-        if ($name == null && $password == null) {
+        if ($name === null && $password === null) {
             $this->identity = $this->unauthenticatedIdentity;
         }
 
-        if ($this->identity == null) {
+        if ($this->identity === null) {
             try {
                 $this->identity = $this->createIdentity($name);
             } catch (\Exception $e) {
@@ -422,13 +422,13 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         $ldap_connection = ldap_connect($this->ldapUrl, $this->ldapPort);
 
         if ($ldap_connection) {
-            if ($this->ldapStartTls == 'true') {
+            if ($this->ldapStartTls === 'true') {
                 ldap_start_tls($ldap_connection);
             }
             ldap_set_option($ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 
             //anonymous login
-            if ($this->allowEmptyPasswords === true) {
+            if ($this->allowEmptyPasswords === 'true') {
                 $bind = ldap_bind($ldap_connection);
             } else {
                 $bind = ldap_bind($ldap_connection, $this->bindDN, $this->bindCredential);
