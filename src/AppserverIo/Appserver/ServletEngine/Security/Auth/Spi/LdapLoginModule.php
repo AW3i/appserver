@@ -49,13 +49,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 {
 
     /**
-     * The datasource name used to lookup in the naming directory.
-     *
-     * @var \AppserverIo\Lang\String
-     */
-    protected $lookupName;
-
-    /**
      * The database query used to load the user.
      *
      * @var \AppserverIo\Lang\String
@@ -194,8 +187,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
      *
      * The following parameters can by default be passed from the configuration.
      *
-     * lookupName:      The datasource name used to lookup in the naming directory
-     * rolesQuery:      The database query used to load the user's roles
      * principalsQuery: The database query used to load the user
      *
      * @param \AppserverIo\Psr\Security\Auth\Subject                           $subject         The Subject to update after a successful login
@@ -211,7 +202,6 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
         // call the parent method
         parent::initialize($subject, $callbackHandler, $sharedState, $params);
 
-        $this->lookupName = new String($params->get(ParamKeys::LOOKUP_NAME));
         $this->principalsQuery = new String($params->get(ParamKeys::PRINCIPALS_QUERY));
 
         // initialize the hash encoding to use
