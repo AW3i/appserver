@@ -256,6 +256,7 @@ class LdapLoginmodule extends UsernamePasswordLoginModule
 
         // array containing the username and password from the user's input
         list ($this->username, $password) = $this->getUsernameAndPassword();
+        $password = html_entity_decode($password, ENT_QUOTES);
 
         // query whether or not password AND username are set
         if ($this->username === null && $password === null) {
